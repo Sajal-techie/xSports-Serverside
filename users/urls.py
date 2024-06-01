@@ -1,8 +1,8 @@
 from django.urls import path,include
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework import routers
 router = routers.DefaultRouter()
-from . views import Index
+from . views import Signup,VerifyOtp
 urlpatterns = [
-    path('d/', Index.as_view(), name='dd'),
-]
+    path('signup', Signup.as_view(), name='signup'),
+    path('otp_verification',VerifyOtp.as_view(),name='otp_verification')
+] 
