@@ -7,8 +7,8 @@ from django.conf import settings
 
 @receiver(post_save, sender = Users)
 def send_otp_on_user_creation(sender,instance, created, **kwargs):
-    if created:
-        print('increated signals ')
+    print('increated signals ',instance)
+    if created and not instance.is_superuser:
         send_otp(instance.email)
 
 

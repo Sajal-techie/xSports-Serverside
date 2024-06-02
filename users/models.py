@@ -15,17 +15,19 @@ class CustomUserManager(BaseUserManager):
         print('create user manager')
         return user
     
-    def create_superuser(self, email, password, **extra_fields):
+    def create_superuser(self, email, password,username=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        
+        for i in extra_fields:
+            print(i,'iiiiiiiiiiiiiiiii')
+        print(extra_fields,'extra fuekd',self)
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Superuser must have is_staff=True.')
         
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Superuser must have is_superuser=True.')
-        print('create superuser manager')
-        return self.create_user(email, password, **extra_fields)
+        print('create superuser manager',username)
+        return self.create_user(email=email,password=password,username=username, **extra_fields)
 
  
 class Users(AbstractUser):
@@ -43,7 +45,7 @@ class Users(AbstractUser):
     objects = CustomUserManager()
 
     def __str__(self) -> str:
-        return self.username + 'user instance'
+        return f"{self.username}user instance"   
 
 
 class Sport(DataBaseModels):
@@ -59,8 +61,8 @@ class UserProfile(DataBaseModels):
     about = models.TextField(null=True, blank=True)
     state = models.CharField(max_length=255, null=True, blank=True)
     district = models.CharField(max_length=255, null=True, blank=True)
-    profile_photo = models.ImageField(upload_to='medias/',null=True, blank=True)
-    cover_photo = models.ImageField(upload_to='medias/',null=True, blank=True)
+    profile_photo = models.ImageField(upload_to='images/',null=True, blank=True)
+    cover_photo = models.ImageField(upload_to='images/',null=True, blank=True)
 
 
     def __str__(self):
