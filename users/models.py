@@ -70,3 +70,6 @@ class UserProfile(DataBaseModels):
     
 
 
+class Academy(DataBaseModels):
+    user = models.ForeignKey(Users, on_delete=models.CASCADE, null=True)
+    license = models.ImageField(upload_to='images/',null=True, blank=True)

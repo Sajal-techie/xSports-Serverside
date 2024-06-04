@@ -15,13 +15,13 @@ class UserProfileSerializer(ModelSerializer):
 
 
 class CustomUsersSerializer(ModelSerializer):
-    sport = SportSerializer( write_only = True)
-    profile = UserProfileSerializer(write_only = True)
+    # sport = SportSerializer( write_only = True)
+    # profile = UserProfileSerializer(write_only = True)
     class Meta:
         model = Users  
         fields = [
             'username', 'email', 'phone', 'dob', 'is_academy',
-            'is_active', 'is_verified', 'password','sport','profile'
+             'is_verified', 'password',
         ]
         extra_kwargs = {
             'password' : {'write_only' : True} 
@@ -29,8 +29,8 @@ class CustomUsersSerializer(ModelSerializer):
     
     def create(self, validated_data):
         print(validated_data,'validated data......................before')
-        sport = validated_data.pop('sport')
-        profile = validated_data.pop('profile')
+        # sport = validated_data.pop('sport')
+        # profile = validated_data.pop('profile')
         print(validated_data,'validated data......................')
         password = validated_data.pop('password')
         user = Users(**validated_data)
@@ -39,7 +39,7 @@ class CustomUsersSerializer(ModelSerializer):
         
         #creating new instance of sport and userprofile to store sportname 
         # district and state  
-        Sport.objects.create(user=user,**sport)
-        UserProfile.objects.create(user=user,**profile)
+        # Sport.objects.create(user=user,**sport)
+        # UserProfile.objects.create(user=user,**profile)
         return user 
     

@@ -20,6 +20,9 @@ class JWTAuthenticationMiddleware:
                     '/signup',
                     '/otp_verification',
                     '/api/token/',
+                    '/favicon.ico',
+                    '/api/token/refresh',
+
                     
                 ]
         print(request.path, 'path in middleware\n')
