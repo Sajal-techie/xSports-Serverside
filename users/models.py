@@ -38,7 +38,7 @@ class Users(AbstractUser):
     dob = models.DateField(null=True,blank=True)  #established date for academy
     is_academy = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
-    is_verified = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=False) 
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username',]
@@ -52,9 +52,9 @@ class Sport(DataBaseModels):
     sport_name = models.CharField(max_length=255)
     user = models.ForeignKey(Users, on_delete=models.CASCADE, null=True)
     def __str__(self):
-        return self.user.username + self.sport_name + 'sport instance'
+        return str(self.user.username) + str(self.sport_name) + 'sport instance'
 
-
+ 
 class UserProfile(DataBaseModels):
     user = models.ForeignKey(Users, on_delete=models.CASCADE, null=True)
     bio = models.TextField(null=True, blank=True)
@@ -66,10 +66,11 @@ class UserProfile(DataBaseModels):
 
 
     def __str__(self):
-        return self.user.username + 'profile instance' + self.bio
+        return str(self.user.username) + 'profile instance' + str(self.bio)
     
 
 
 class Academy(DataBaseModels):
     user = models.ForeignKey(Users, on_delete=models.CASCADE, null=True)
-    license = models.ImageField(upload_to='images/',null=True, blank=True)
+    license = models.FileField(upload_to='images/',null=True, blank=True)
+    is_certified = models.BooleanField(default=False)

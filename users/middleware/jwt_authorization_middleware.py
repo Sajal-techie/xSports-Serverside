@@ -2,7 +2,6 @@
 import jwt
 from django.conf import settings
 from django.http import JsonResponse
-from decouple import config
 
 
 
@@ -12,8 +11,6 @@ class JWTAuthenticationMiddleware:
 
 
     def __call__(self, request):
-        # public_routes = config('public_urls')
-        # print(public_routes,'routes')
         public_urls = [
                     '/api/token/refresh/',
                     '/login',
@@ -22,11 +19,11 @@ class JWTAuthenticationMiddleware:
                     '/api/token/',
                     '/favicon.ico',
                     '/api/token/refresh',
-
                     
                 ]
+        
         print(request.path, 'path in middleware\n')
-        if request.path in public_urls :
+        if request.path in public_urls or request.path.startswith('/media/') :
             print('in if and returend resopinse')
             return self.get_response(request)
         
@@ -45,7 +42,7 @@ class JWTAuthenticationMiddleware:
             except jwt.ExpiredSignatureError:
                 return JsonResponse({'message': 'Token has expired'}, status=401)
             except jwt.InvalidTokenError:
-                return JsonResponse({'message': 'Invalid token'}, status=400)
+                return JsonResponse({'message': 'Invalid token'}, status=401)
             except ValueError as e:
                 print(e,'value errorin middlewate')
                 return JsonResponse({'message': str(e)}, status=401)

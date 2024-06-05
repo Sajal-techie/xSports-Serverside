@@ -4,47 +4,37 @@ from rest_framework import status
 from django.contrib.auth import authenticate,login 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.parsers import MultiPartParser
 
-from users.serializers.user_serializer import CustomUsersSerializer
+from users.serializers.user_serializer import CustomUsersSerializer,Academyserializer,UserProfileSerializer,SportSerializer
 from .models import Users,UserProfile,Sport,Academy
 
 class Signup(APIView):
+    # parser_classes = (MultiPartParser,)
     def post(self, request):
         data = request.data
         email = data['email']
-        is_academy =True if data['is_academy'] == 'true' else False
-        print(email,is_academy,'\n',data)
-        if is_academy:
-            license = data['license'] 
-            print(license,'license')
-        state = data['state'] 
-        district = data['district']
-        sport_name = data['sport_name']
-        print(state,sport_name)
+        print(email,'\n',data)
+
 
         if Users.objects.filter(email=email).exists():
             return Response({
                 'status': status.HTTP_400_BAD_REQUEST, 
                'message': 'Email Already Exists'
             })
-        serializer = CustomUsersSerializer(data=request.data)
-        # print(serializer)
+        user_serializer = CustomUsersSerializer(data=data)
         try:
-            serializer.is_valid(raise_exception=True)
-            print('000000',serializer.validated_data,'11111111111') 
-            serializer.save() 
-            user = Users.objects.get(email=email)
-            UserProfile.objects.create(user=user,state=state,district=district)
-            Sport.objects.create(user=user,sport_name=sport_name)
+            user_serializer.is_valid(raise_exception=True)
+            user_serializer.save() 
             return Response({
                 'status': status.HTTP_200_OK,
                 'message': 'Registration Successful, Check Email For Verification',
                 
-                }) 
+                })  
         except Exception as e:
-            print(e,'error',serializer.errors,'dafdfasdffsdadsf')
-            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
-
+            print(e,'exeption errorrrrr')
+            return Response(e,status=status.HTTP_400_BAD_REQUEST)
+ 
 
 class VerifyOtp(APIView):
     def put(self, request):
