@@ -41,11 +41,16 @@ class AcademyManage(APIView):
 class ToggleIsCertified(APIView):
     def post(self,request,id,):
         try:
-            data = request.data
-            dat = request.id
+            value = request.data.get('value',None)
             user = Users.objects.get(id= id)
             academy = Academy.objects.get(user=user)
-            print(data,user,academy.is_certified,'toggle',id)
+            if value :
+                if value == 'approve':
+                    academy.is_certified = True
+                else:
+                    academy.is_certified = False
+            academy.save()
+            print(value,user,academy.is_certified,'toggle',id)
             return Response('hai')
         except Exception as e:
             print(e,'toglle error')

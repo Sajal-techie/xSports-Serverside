@@ -70,8 +70,6 @@ class Login(APIView):
                'message': 'Email Does Not Exists'
             })
         user = Users.objects.get(email = email)
-        # print(userdetail.email,userdetail.password,userdetail.check_password(password))
-        # user =  authenticate(request=request,email=email,password=password)
         print(user)
         if not user.check_password(password):
             return Response({
@@ -95,7 +93,7 @@ class Login(APIView):
             })
         if not user.is_verified :
             return Response({
-                'status' :status.HTTP_400_BAD_REQUEST,
+                'status' :status.HTTP_403_FORBIDDEN,
                 'message':'User is not verified'
             })
         if user.is_academy and not is_academy:
@@ -108,7 +106,14 @@ class Login(APIView):
                 'status':status.HTTP_400_BAD_REQUEST,
                 'message': 'You are signed in as player try player login'
             })
-        
+        if is_academy:
+            academy = Academy.objects.get(user=user)
+            if not academy.is_certified :
+                return Response({
+                    'status':status.HTTP_400_BAD_REQUEST,
+                    'message':'You are not approved by admin '
+                })
+
         role = 'admin' if is_staff and user.is_staff else 'academy' if is_academy else 'player'
 
         return Response({

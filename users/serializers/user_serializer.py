@@ -19,14 +19,14 @@ class CustomUsersSerializer(ModelSerializer):
     district = serializers.CharField(max_length=255,required=False)
     state = serializers.CharField(max_length=255,required=False)
     license = serializers.FileField(required=False) 
-    sports = SportSerializer(read_only =True)
-    user_profile= UserProfileSerializer(read_only=True)
+    # sports = SportSerializer(read_only =True)
+    # user_profile= UserProfileSerializer(read_only=True)
 
     class Meta: 
         model = Users  
         fields = [
             'username', 'email', 'phone', 'dob', 'is_academy',
-             'is_verified', 'password','sport','district','state','license','sports','user_profile'
+             'is_verified', 'password','sport','district','state','license'
         ]
         extra_kwargs = {
             'password' : {'write_only' : True} 
