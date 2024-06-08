@@ -19,12 +19,14 @@ class JWTAuthenticationMiddleware:
                     '/api/token/',
                     '/favicon.ico',
                     '/api/token/refresh',
+                    '/logout'
                     
                 ]
         
         print(request.path, 'path in middleware\n')
         if request.path in public_urls or request.path.startswith('/media/') :
             print('in if and returend resopinse')
+            print(request.headers.get('Authorization', None),'authheader in if')
             return self.get_response(request)
         
         

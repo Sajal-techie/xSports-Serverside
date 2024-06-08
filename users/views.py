@@ -5,9 +5,10 @@ from django.contrib.auth import authenticate,login
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.parsers import MultiPartParser
-
+from rest_framework_simplejwt.tokens import RefreshToken
 from users.serializers.user_serializer import CustomUsersSerializer,Academyserializer,UserProfileSerializer,SportSerializer
 from .models import Users,UserProfile,Sport,Academy
+from .signals import send_otp 
 
 class Signup(APIView):
     # parser_classes = (MultiPartParser,)
@@ -57,7 +58,7 @@ class VerifyOtp(APIView):
         }) 
 
 class Login(APIView):
-    def post(self, request):
+    def post(self, request): 
         data = request.data
         email = data['email']
         password = data['password']
@@ -88,10 +89,11 @@ class Login(APIView):
             })
         if not user.is_active:
             return Response({
-                'status':status.HTTP_400_BAD_REQUEST,
+                'status':status.HTTP_400_BAD_REQUEST, 
                 'message':'You are blocked'
             })
-        if not user.is_verified :
+        if not user.is_verified:
+            send_otp(email=user.email)
             return Response({
                 'status' :status.HTTP_403_FORBIDDEN,
                 'message':'User is not verified'
@@ -123,14 +125,39 @@ class Login(APIView):
            'role':role
         })
 
+class Logout(APIView):
+    
+    def post(self, request):
+        print(request.user,'suser')
+        try:
+            refresh = request.data.get('refresh')
+            print(refresh,'refresh in logout',request.data)
+            token = RefreshToken(refresh)
+            print(token,'token in logout')
+            token.blacklist()
+            return Response(status=200)
+        except Exception as e:
+            print(e,'error in logout')
+            return Response(status=400)
+
 class Profile(APIView):
     # permission_classes = [IsAuthenticated] 
     # authentication_classes = [JWTAuthentication]
-    def get(self,request):
-        # user = request.user
-        # serializer = CustomUsersSerializer(user)
+
+    def get(self,request): 
+        user = request.user
+        print(user,'user')
+        print(user.email,' email')
+        profile = UserProfile.objects.get(user=user)
+        print(UserProfileSerializer(profile).data,'profile data serialzed')
+        sport = Sport.objects.get(user = user)
+        user_data = {
+            'user' : CustomUsersSerializer(user).data,
+            'profile': UserProfileSerializer(profile).data,
+            'sport' : SportSerializer(sport).data,
+        }
         return Response({
             'status': status.HTTP_200_OK,
-            'data': 'hai hello this is profile'
+            'user_details': user_data
         })
     
