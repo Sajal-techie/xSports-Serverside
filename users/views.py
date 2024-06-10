@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.parsers import MultiPartParser
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.core.validators import validate_email
 from users.serializers.user_serializer import CustomUsersSerializer,Academyserializer,UserProfileSerializer,SportSerializer
 from .models import Users,UserProfile,Sport,Academy
 from .signals import send_otp 
@@ -14,14 +15,53 @@ class Signup(APIView):
     # parser_classes = (MultiPartParser,)
     def post(self, request):
         data = request.data
+        
+        # validations 
+        errors = {}
+        print('username' in data)
+        if 'email' in data:
+            if not data['email'] :
+                print('hai hello')
+                errors['email'] = "Email field is Required"
+        else :
+            try:
+                validate_email(email)
+            except:
+                errors['email'] = "Email is not Valid"
+       
         email = data['email']
         print(email,'\n',data)
 
+        if 'username' in data:
+            if not data['username']:
+                errors['username'] = "Name is required"
+        if 'sport' in data:
+            if not data['sport']:
+                errors['sport'] = "Sport is Required"
+        if 'state' in data:
+            if not data['state']:
+                errors['state'] = "State is required"
+        if 'district' in data:
+            if not data['district']:
+                errors['district'] = "District is required"
+        if 'dob' in data:
+            if not data['dob']:
+                errors['dob'] = "Date of birth is required"
+        if 'password' in data:
+            if not data['password']:
+                errors['password'] = "Password is required"
+        if 'license' in data:
+            if not data['license']:
+                errors['license'] = "License is required"
 
+        print(errors,'errors')
         if Users.objects.filter(email=email).exists():
+            errors['email'] = "Email already exists"
+
+        if errors:
             return Response({
-                'status': status.HTTP_400_BAD_REQUEST, 
-               'message': 'Email Already Exists'
+                'status':status.HTTP_400_BAD_REQUEST,
+                'message' : errors.values()
             })
         user_serializer = CustomUsersSerializer(data=data)
         try:
@@ -92,12 +132,6 @@ class Login(APIView):
                 'status':status.HTTP_400_BAD_REQUEST, 
                 'message':'You are blocked'
             })
-        if not user.is_verified:
-            send_otp(email=user.email)
-            return Response({
-                'status' :status.HTTP_403_FORBIDDEN,
-                'message':'User is not verified'
-            })
         if user.is_academy and not is_academy:
             return Response({
                 'status':status.HTTP_400_BAD_REQUEST,
@@ -107,6 +141,12 @@ class Login(APIView):
             return Response({
                 'status':status.HTTP_400_BAD_REQUEST,
                 'message': 'You are signed in as player try player login'
+            })
+        if not user.is_verified:
+            send_otp(email=user.email)
+            return Response({
+                'status' :status.HTTP_403_FORBIDDEN,
+                'message':'User is not verified'
             })
         if is_academy:
             academy = Academy.objects.get(user=user)
