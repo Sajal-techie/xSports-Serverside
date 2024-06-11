@@ -19,7 +19,8 @@ class JWTAuthenticationMiddleware:
                     '/api/token/',
                     '/favicon.ico',
                     '/api/token/refresh',
-                    '/logout'
+                    '/logout',
+                    '/resend_otp'
                     
                 ]
         

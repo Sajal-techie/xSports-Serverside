@@ -9,7 +9,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.validators import validate_email
 from users.serializers.user_serializer import CustomUsersSerializer,Academyserializer,UserProfileSerializer,SportSerializer
 from .models import Users,UserProfile,Sport,Academy
-from .signals import send_otp 
+from users.serializers.user_serializer import send_otp 
 
 class Signup(APIView):
     # parser_classes = (MultiPartParser,)
@@ -200,4 +200,21 @@ class Profile(APIView):
             'status': status.HTTP_200_OK,
             'user_details': user_data
         })
-    
+
+
+class ResendOtp(APIView):
+    def post(self,request):
+        try:
+
+            print(request.data)
+            email = request.data['email']
+            send_otp(email)
+            return Response({
+                'status':status.HTTP_200_OK,
+                'message':"OTP sended successfully"
+            })
+        except Exception as e:
+            return Response({
+                'status':status.HTTP_400_BAD_REQUEST,
+                'message': 'Error sending otp'
+            })
