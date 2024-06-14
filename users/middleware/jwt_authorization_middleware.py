@@ -36,12 +36,12 @@ class JWTAuthenticationMiddleware:
             print('authheader in middleware\n')
             try:
                 token_type, token = auth_header.split()
-                print(token_type, 'token and typ e \n')
+                # print(token_type, 'token and typ e \n')
                 if token_type.lower() != 'bearer':
                     raise ValueError("Invalid token type")
                 payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-                request.user_id = payload.get('user_id')
-                print(request.user_id,payload,'payload and id ')
+                # request.user_id = payload.get('user_id')
+                # print(request.user_id,payload,'payload and id ')
             except jwt.ExpiredSignatureError:
                 return JsonResponse({'message': 'Token has expired'}, status=401)
             except jwt.InvalidTokenError:

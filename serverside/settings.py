@@ -28,6 +28,7 @@ INSTALLED_APPS = [
 
     # custom apps
     'users',
+    'user_profile',
 
 ]
 AUTH_USER_MODEL = 'users.Users'
@@ -143,8 +144,8 @@ EMAIL_HOST_PASSWORD = config('APP_PASS')
 EMAIL_USE_TLS = True
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(weeks=1),
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': False,

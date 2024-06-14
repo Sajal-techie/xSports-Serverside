@@ -102,7 +102,9 @@ class Login(APIView):
         data = request.data
         email = data['email']
         password = data['password']
-        is_academy = data['is_academy'] 
+        is_academy = False
+        if 'is_academy' in data:
+            is_academy = data['is_academy'] 
         is_staff = True if 'is_staff' in data else False
         print(data,is_academy,is_staff)
         if not Users.objects.filter(email=email).exists():
@@ -179,27 +181,6 @@ class Logout(APIView):
         except Exception as e:
             print(e,'error in logout')
             return Response(status=400)
-
-class Profile(APIView):
-    # permission_classes = [IsAuthenticated] 
-    # authentication_classes = [JWTAuthentication]
-
-    def get(self,request): 
-        user = request.user
-        print(user,'user')
-        print(user.email,' email')
-        profile = UserProfile.objects.get(user=user)
-        print(UserProfileSerializer(profile).data,'profile data serialzed')
-        sport = Sport.objects.get(user = user)
-        user_data = {
-            'user' : CustomUsersSerializer(user).data,
-            'profile': UserProfileSerializer(profile).data,
-            'sport' : SportSerializer(sport).data,
-        }
-        return Response({
-            'status': status.HTTP_200_OK,
-            'user_details': user_data
-        })
 
 
 class ResendOtp(APIView):

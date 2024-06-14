@@ -61,7 +61,7 @@ class UserProfile(DataBaseModels):
     about = models.TextField(null=True, blank=True)
     state = models.CharField(max_length=255, null=True, blank=True)
     district = models.CharField(max_length=255, null=True, blank=True)
-    profile_photo = models.ImageField(upload_to='images/',null=True, blank=True)
+    profile_photo = models.ImageField(upload_to='images/',null=True, blank=True) 
     cover_photo = models.ImageField(upload_to='images/',null=True, blank=True)
 
 

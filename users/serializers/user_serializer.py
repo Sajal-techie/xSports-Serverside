@@ -11,11 +11,6 @@ class SportSerializer(ModelSerializer):
         model = Sport
         fields = ['sport_name']
     
-class UserProfileSerializer(ModelSerializer):
-    class Meta:
-        model = UserProfile
-        fields = ['bio','state','district','about','profile_photo','cover_photo']
- 
 
 class CustomUsersSerializer(ModelSerializer):
     sport = serializers.CharField(max_length=255,required=False)
@@ -29,7 +24,7 @@ class CustomUsersSerializer(ModelSerializer):
         model = Users  
         fields = [
             'username', 'email', 'phone', 'dob', 'is_academy',
-             'is_verified', 'password','sport','district','state','license'
+             'is_verified', 'password','sport','district','state','license','id' 
         ]
         extra_kwargs = {
             'password' : {'write_only' : True} 
@@ -56,6 +51,11 @@ class CustomUsersSerializer(ModelSerializer):
         return instance 
     
 
+class UserProfileSerializer(ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ['bio','state','district','about','profile_photo','cover_photo']
+ 
 class Academyserializer(ModelSerializer):
     class Meta:
         model = Academy
