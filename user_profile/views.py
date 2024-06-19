@@ -10,8 +10,6 @@ from .profile_serializer import ImageSerializer
 
 #  to get the user data to show in the profile page 
 class ProfileData(APIView):
-    # permission_classes = [IsAuthenticated] 
-    # authentication_classes = [JWTAuthentication]
 
     def get(self,request): 
         try:
@@ -19,9 +17,9 @@ class ProfileData(APIView):
             profile = UserProfile.objects.get(user=user)
             sport = Sport.objects.get(user = user)
             user_data = {
-                'user' : CustomUsersSerializer(user).data, # it will contain datas in Users model
-                'profile': UserProfileSerializer(profile).data, # it will contain data from UserProfile model
-                'sport' : SportSerializer(sport).data, # it will contain data from Sport model
+                'user' : CustomUsersSerializer(user).data,  # it will contain datas in Users model
+                'profile': UserProfileSerializer(profile).data,   # it will contain data from UserProfile model
+                'sport' : SportSerializer(sport).data,   # it will contain data from Sport model
             }
             return Response({
                 'status': status.HTTP_200_OK,
@@ -39,8 +37,6 @@ class ProfileData(APIView):
 
 
 class UpdatePhoto(APIView):
-    # model = UserProfile
-    # fields = ['profile_photo']
     def post(self, request,id):
         try:
             print(request.data,'request data lll')
@@ -48,9 +44,18 @@ class UpdatePhoto(APIView):
             serializer = UserProfileSerializer(user, data=request.data)
             if serializer.is_valid(raise_exception=True):
                 profile = UserProfile.objects.get(user=user)
-                new_photo = serializer.validated_data.get('profile_photo',None)
-                oldpath = profile.profile_photo.path if (profile.profile_photo and new_photo)  else None
-                profile.profile_photo = new_photo
+                if serializer.validated_data.get('profile_photo',None):
+                    new_photo = serializer.validated_data.get('profile_photo',None)
+                    oldpath = profile.profile_photo.path if (profile.profile_photo and new_photo)  else None
+                    profile.profile_photo = new_photo   
+                    print('profile photo = ',new_photo,oldpath)
+                else:
+                    new_photo = serializer.validated_data.get('cover_photo',None)
+                    oldpath = profile.cover_photo.path if (profile.cover_photo and new_photo)  else None
+                    profile.cover_photo = new_photo   
+                    print('cover photo = ',new_photo,oldpath)
+                
+                print(new_photo,oldpath)
                 profile.save()
                 serializer.save()  
                 print('saved',oldpath) 
@@ -77,8 +82,18 @@ class UpdatePhoto(APIView):
             data = request.data
             print(data,user,'datas and user')
             profile = UserProfile.objects.get(user=user)
-            oldpath = profile.profile_photo.path if profile.profile_photo else None
-            profile.profile_photo = None
+            oldpath = None
+            if 'type' in data and data['type'] == 'profile':
+                    oldpath = profile.profile_photo.path if profile.profile_photo else None
+                    profile.profile_photo = None
+            elif 'type' in data and data['type'] == 'cover':
+                    oldpath = profile.cover_photo.path if profile.cover_photo else None
+                    profile.cover_photo = None
+            else:
+                return Response({
+                    'status': status.HTTP_400_BAD_REQUEST,
+                    'message':"Photo deletion Failed"
+                })
             profile.save()
             if oldpath and os.path.exists(oldpath):
                 os.remove(oldpath)

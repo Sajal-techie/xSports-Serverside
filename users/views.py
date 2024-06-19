@@ -100,8 +100,18 @@ class VerifyOtp(APIView):
 class Login(APIView):
     def post(self, request): 
         data = request.data
-        email = data['email']
-        password = data['password']
+        email = data['email'] if 'email' in data else None
+        password = data['password'] if 'password' in data else None
+        if email is None:
+            return Response({
+                'status': status.HTTP_400_BAD_REQUEST,
+                'message':"email field is required"
+            })
+        if password is None:
+            return Response({
+                'status': status.HTTP_400_BAD_REQUEST,
+                'message':"password field is required"
+            })
         is_academy = False
         if 'is_academy' in data:
             is_academy = data['is_academy'] 
