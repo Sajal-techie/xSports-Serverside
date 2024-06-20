@@ -7,6 +7,6 @@ urlpatterns = [
     path('profile',ProfileData.as_view(),name='profile'), 
     path('update_photo/<int:id>', UpdatePhoto.as_view(), name='update_photo'),
     path('delete_photo/<int:id>',UpdatePhoto.as_view(),name='delete_photo'),
-    # path('profile',ProfileData.as_view(),name='profile'),
+    path('update_about/',UpdateAbout.as_view(),name='update_about'),
     # path('resend_otp',ResendOtp.as_view(),name='resend_otp')
 ] 
