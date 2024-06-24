@@ -56,7 +56,7 @@ class Sport(DataBaseModels):
 
  
 class UserProfile(DataBaseModels):
-    user = models.ForeignKey(Users, on_delete=models.CASCADE, null=True)
+    user = models.OneToOneField(Users, on_delete=models.CASCADE, null=True, related_name='userprofile')
     bio = models.TextField(null=True, blank=True)
     about = models.TextField(null=True, blank=True)
     state = models.CharField(max_length=255, null=True, blank=True)

@@ -7,6 +7,7 @@ urlpatterns = [
     path('profile',ProfileData.as_view(),name='profile'), 
     path('update_photo/<int:id>', UpdatePhoto.as_view(), name='update_photo'),
     path('delete_photo/<int:id>',UpdatePhoto.as_view(),name='delete_photo'),
-    path('update_about/',UpdateAbout.as_view(),name='update_about'),
-    # path('resend_otp',ResendOtp.as_view(),name='resend_otp')
+    path('update_about',UpdateAbout.as_view(),name='update_about'),
+    path('user_academy',UserAcademyManage.as_view({'get':'list','post':'create'}),name='user_academy'),
+    path('user_academy/<int:id>',UserAcademyManage.as_view({'put':'update','delete':'destroy'}),name='user_academy')
 ] 

@@ -1,13 +1,14 @@
 from django.shortcuts import render
-from rest_framework.views import APIView
+from rest_framework import viewsets,views
 from rest_framework import status, generics
 from rest_framework.response import Response
 import os
-from users.models import UserProfile,Sport,Academy
+from users.models import UserProfile,Sport,Academy,Users
 from users.serializers.user_serializer import CustomUsersSerializer,UserProfileSerializer,SportSerializer
-from .profile_serializer import AboutSerializer
+from .profile_serializer import AboutSerializer,UserAcademySerializer
+from .models import UserAcademy
 
-class ProfileData(APIView):
+class ProfileData(views.APIView):
     # to get all user data from different tables 
     def get(self,request): 
         try:
@@ -32,7 +33,7 @@ class ProfileData(APIView):
 
 
 
-class UpdatePhoto(APIView):
+class UpdatePhoto(views.APIView):
     #  to update profile photo or cover photo
     def post(self, request,id):
         try:
@@ -115,7 +116,17 @@ class UpdatePhoto(APIView):
             })
 
 # update about of user 
-class UpdateAbout(generics.RetrieveUpdateDestroyAPIView):
+class UpdateAbout(generics.UpdateAPIView):
     serializer_class = AboutSerializer
     def get_object(self):
         return UserProfile.objects.get(user=self.request.user)
+
+
+# CRUD academies of players
+class UserAcademyManage(viewsets.ModelViewSet):
+    serializer_class = UserAcademySerializer
+    lookup_field = 'id'
+    
+
+    def get_queryset(self):
+        return UserAcademy.objects.filter(user=self.request.user).select_related('academy').order_by('-id')
