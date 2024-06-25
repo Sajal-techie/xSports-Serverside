@@ -5,8 +5,11 @@ from rest_framework.response import Response
 import os
 from users.models import UserProfile,Sport,Academy,Users
 from users.serializers.user_serializer import CustomUsersSerializer,UserProfileSerializer,SportSerializer
-from .profile_serializer import AboutSerializer,UserAcademySerializer
-from .models import UserAcademy
+from .serializers.useracademy_serializer import UserAcademySerializer
+from .serializers.about_serializer import AboutSerializer
+from .serializers.achievement_serializer import AchievementSerializer
+from .models import UserAcademy,Achievements
+
 
 class ProfileData(views.APIView):
     # to get all user data from different tables 
@@ -130,3 +133,11 @@ class UserAcademyManage(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return UserAcademy.objects.filter(user=self.request.user).select_related('academy').order_by('-id')
+
+
+class AchievementManage(viewsets.ModelViewSet):
+    serializer_class = AchievementSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        return Achievements.objects.filter(user=self.request.user).order_by('-id')

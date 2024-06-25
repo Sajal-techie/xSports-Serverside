@@ -1,12 +1,8 @@
 from rest_framework.serializers import ModelSerializer,Serializer
 from rest_framework import serializers
 from users.models import UserProfile,Users
-from .models import UserAcademy
+from ..models import UserAcademy
 
-class AboutSerializer(ModelSerializer):
-    class Meta:
-        model = UserProfile
-        fields = ['about']
 
 class AcademyProfileSerializer(serializers.ModelSerializer):
     class Meta:

@@ -17,3 +17,16 @@ class UserAcademy(DataBaseModels):
 
     def __str__(self) -> str:
         return f"{self.user.username} played in {self.academy.username}"
+
+
+class Achievements(DataBaseModels):
+    user = models.ForeignKey(Users, on_delete=models.SET_NULL,null=True, related_name='user_achievements')
+    title = models.CharField(max_length=255, null=True,blank=True)
+    issued_by = models.CharField(max_length=255, null=True,blank=True)
+    issued_month = models.CharField(max_length=20, null=True,blank=True)
+    issued_year = models.CharField(max_length=10, null=True,blank=True)
+    image = models.ImageField(upload_to='images/',null=True, blank=True)
+    description = models.TextField(null=True)
+    
+    def __str__(self) -> str:
+        return f"{self.user.username}'s {self.title}"
