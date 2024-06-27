@@ -10,9 +10,8 @@ from .serializers.about_serializer import AboutSerializer
 from .serializers.achievement_serializer import AchievementSerializer
 from .models import UserAcademy,Achievements
 
-
 class ProfileData(views.APIView):
-    # to get all user data from different tables 
+    # to get all data of a user from different tables 
     def get(self,request): 
         try:
             user = request.user
@@ -33,7 +32,41 @@ class ProfileData(views.APIView):
                 'status': status.HTTP_400_BAD_REQUEST,
                 'message': "server error"
             })
-
+        
+    def post(self,request):
+        try:
+            if isinstance(request.user,Users):
+                instance = request.user
+                print(instance,request.data)
+                instance = request.user 
+                if 'phone' in request.data:
+                    instance.phone = request.data['phone']
+                if 'username' in request.data:
+                    instance.username = request.data['username']
+                profile = UserProfile.objects.get(user=instance)
+                if 'state' in request.data:
+                    profile.state = request.data['state']
+                if 'district' in request.data:
+                    profile.district = request.data['district']
+                if 'bio' in request.data:
+                    profile.bio = request.data['bio']
+                instance.save()
+                profile.save()
+                return Response({
+                    'status':status.HTTP_200_OK,
+                    'message':'User details updated successfully'
+                })
+            else:
+                return Response({
+                    'status':status.HTTP_400_BAD_REQUEST,
+                    'message':'service not available'
+                })
+        except Exception as e:
+            print(e)
+            return Response({
+                'status':status.HTTP_400_BAD_REQUEST,
+                'message':'some error'
+            })
 
 
 class UpdatePhoto(views.APIView):

@@ -1,4 +1,3 @@
-from django.core.mail import send_mail
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -7,6 +6,7 @@ from rest_framework import status
 from django.conf import settings
 from users.serializers.user_serializer import CustomUsersSerializer,SportSerializer,Academyserializer,UserProfileSerializer
 from users.models import Users,Sport,UserProfile,Academy
+from .task import send_alert
 
 class AcademyManage(APIView):
     def get(self, request):
@@ -56,7 +56,7 @@ class ToggleIsCertified(APIView):
                     message = f"Your playMaker account with email {user.email} has been denied by admin"
                     academy.is_certified = False
                 email_from = settings.EMAIL_HOST_USER
-                send_mail(subject,message,email_from,[user.email])
+                send_alert.delay(subject,message,email_from,[user.email])
             academy.save()
             print(value,user,academy.is_certified,'toggle',id)
             return Response({

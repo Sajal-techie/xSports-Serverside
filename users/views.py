@@ -9,7 +9,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.validators import validate_email
 from users.serializers.user_serializer import CustomUsersSerializer,Academyserializer,UserProfileSerializer,SportSerializer
 from .models import Users,UserProfile,Sport,Academy
-from users.serializers.user_serializer import send_otp 
+from .task import send_otp
 
 class Signup(APIView):
     # parser_classes = (MultiPartParser,)
@@ -67,6 +67,7 @@ class Signup(APIView):
         try:
             user_serializer.is_valid(raise_exception=True)
             user_serializer.save() 
+            send_otp.delay(email)
             return Response({
                 'status': status.HTTP_200_OK,
                 'message': 'Registration Successful, Check Email For Verification',
@@ -79,23 +80,30 @@ class Signup(APIView):
 
 class VerifyOtp(APIView):
     def put(self, request):
-        data = request.data
-        email = data['email']
-        otp = data['otp']
-        user = Users.objects.get(email=email)
-        print(data,otp,email,user.otp)
-        if user.otp == otp:
-            user.otp = None
-            user.is_verified = True
-            user.save()
+        try:
+            data = request.data
+            email = data['email'] if 'email' in data else None
+            otp = data['otp']
+            user = Users.objects.get(email=email)
+            print(data,otp,email,user.otp)
+            if user.otp == otp:
+                user.otp = None
+                user.is_verified = True
+                user.save()
+                return Response({
+                    'status': status.HTTP_200_OK,
+                    'message': 'OTP Verified'
+                })
             return Response({
-                'status': status.HTTP_200_OK,
-                'message': 'OTP Verified'
+                'status': status.HTTP_400_BAD_REQUEST,
+                'message': 'Invalid OTP'
+            }) 
+        except Exception as e:
+            print(e,'verify opt error')
+            return Response({
+                'status': status.HTTP_400_BAD_REQUEST,
+                'message':'Your token has been expired try login again '
             })
-        return Response({
-            'status': status.HTTP_400_BAD_REQUEST,
-            'message': 'Invalid OTP'
-        }) 
 
 class Login(APIView):
     def post(self, request): 
@@ -155,10 +163,10 @@ class Login(APIView):
                 'message': 'You are signed in as player try player login'
             })
         if not user.is_verified:
-            send_otp(email=user.email)
+            send_otp.delay(email)
             return Response({
                 'status' :status.HTTP_403_FORBIDDEN,
-                'message':'User is not verified'
+                'message':'You are not verified'
             })
         if is_academy:
             academy = Academy.objects.get(user=user)
@@ -174,7 +182,8 @@ class Login(APIView):
             'status': status.HTTP_200_OK,
            'message': 'Login Successful',
            'user':user.username,
-           'role':role
+           'role':role,
+           'dob':user.dob
         })
 
 class Logout(APIView):
@@ -196,10 +205,9 @@ class Logout(APIView):
 class ResendOtp(APIView):
     def post(self,request):
         try:
-
             print(request.data)
-            email = request.data['email']
-            send_otp(email)
+            email = request.data['email'] 
+            send_otp.delay(email)
             return Response({
                 'status':status.HTTP_200_OK,
                 'message':"OTP sended successfully"
