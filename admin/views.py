@@ -17,16 +17,20 @@ class AcademyManage(APIView):
             if UserProfile.objects.filter(user=user).exists():
                 user_profile = UserProfile.objects.get(user=user)
             if Sport.objects.filter(user=user).exists():
-                sport = Sport.objects.get(user=user)
+                sports = Sport.objects.filter(user=user)
+                sport_data = []
+                for sport in sports:
+                    sport_data.append( SportSerializer(sport).data)
             if Academy.objects.filter(user=user).exists():
                 academy_data = Academy.objects.get(user=user)
+            print(sport_data)
             user_data.append({
                 'id': user.id,
                 'username': user.username,
                 'email': user.email,
                 'dob':user.dob,
                 'profile': UserProfileSerializer(user_profile).data,
-                'sport': SportSerializer(sport).data,
+                'sport':sport_data,
                 'academy_data': Academyserializer(academy_data).data,
             })
         if not user_data:

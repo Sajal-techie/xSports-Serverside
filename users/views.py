@@ -31,6 +31,8 @@ class Signup(APIView):
        
         email = data['email']
         print(email,'\n',data)
+        data.setlist('sport', request.data.getlist('sport[]'))
+        print(data,'sports data')
 
         if 'username' in data:
             if not data['username']:
@@ -56,7 +58,7 @@ class Signup(APIView):
 
         print(errors,'errors')
         if Users.objects.filter(email=email).exists():
-            errors['email'] = "Email already exists"
+            errors['email'] = "Account with Email already exist try login"
 
         if errors:
             return Response({
@@ -187,7 +189,6 @@ class Login(APIView):
         })
 
 class Logout(APIView):
-    
     def post(self, request):
         print(request.user,'suser')
         try:
@@ -216,4 +217,45 @@ class ResendOtp(APIView):
             return Response({
                 'status':status.HTTP_400_BAD_REQUEST,
                 'message': 'Error sending otp'
+            })
+    
+
+class ForgetPassword(APIView):
+    def post(self, request):
+        try:
+            print(request.data)
+            if 'email' in request.data:
+                email = request.data['email']
+                if 'password' in request.data:
+                    user = Users.objects.get(email=email)
+                    user.set_password(request.data['password'])
+                    user.save()
+                    print('password changed')
+                    return Response({
+                        'status':status.HTTP_200_OK,
+                        'message':'Password Resetted successfully'
+                    })
+                if Users.objects.filter(email=email).exists():
+                    send_otp.delay(email)
+                    print('email exist')
+                    return Response({
+                        'status' : status.HTTP_200_OK,
+                        'message': 'Email is valid'
+                    })
+            return Response({
+                'status': status.HTTP_400_BAD_REQUEST,
+                'message': "Email is not valid, Try signin"
+            })
+        except Users.DoesNotExist as e:
+            print(e,'does not exist')
+            return Response({
+                'status': status.HTTP_400_BAD_REQUEST,
+                'message': 'Account does not exist'
+            })
+
+        except Exception as e:
+            print(e,'error')
+            return Response({
+                'status':status.HTTP_400_BAD_REQUEST,
+                'message': 'Internal Server Error'
             })

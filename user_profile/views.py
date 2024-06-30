@@ -16,11 +16,15 @@ class ProfileData(views.APIView):
         try:
             user = request.user
             profile = UserProfile.objects.get(user=user)
-            sport = Sport.objects.get(user = user)
+            sports = Sport.objects.filter(user = user)
+            sport_data = []
+            for sport in sports:
+                sport_data.append(SportSerializer(sport).data)
+            print(sport_data)
             user_data = {
                 'user' : CustomUsersSerializer(user).data,  # it will contain datas in Users model
                 'profile': UserProfileSerializer(profile).data,   # it will contain data from UserProfile model
-                'sport' : SportSerializer(sport).data,   # it will contain data from Sport model
+                'sport' : sport_data,   # it will contain data from Sport model
             }
             return Response({
                 'status': status.HTTP_200_OK,

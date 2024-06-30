@@ -12,7 +12,7 @@ class SportSerializer(ModelSerializer):
     
 
 class CustomUsersSerializer(ModelSerializer):
-    sport = serializers.CharField(max_length=255,required=False)
+    sport = serializers.ListField(child=serializers.CharField(max_length=255), required=False)
     district = serializers.CharField(max_length=255,required=False)
     state = serializers.CharField(max_length=255,required=False)
     license = serializers.FileField(required=False) 
@@ -31,18 +31,19 @@ class CustomUsersSerializer(ModelSerializer):
     
     def create(self, validated_data):
         print(validated_data,'validated data......................before')
-        sport = validated_data.pop('sport')
+        sports = validated_data.pop('sport')
         state = validated_data.pop('state')
         district = validated_data.pop('district')
         license = validated_data.pop('license',None)
-        print(validated_data,'validated data......................after',sport,state,district,license)
+        print(validated_data,'validated data......................after',sports,state,district,license)
         password = validated_data.pop('password')
         instance = super().create(validated_data)
         instance.set_password(password)
         instance.save()
         '''creating new instance of sport and userprofile to store sportname 
          district and state ''' 
-        Sport.objects.create(user=instance,sport_name=sport)
+        for sport in sports:
+            Sport.objects.create(user=instance,sport_name=sport)
         UserProfile.objects.create(user=instance,district=district,state=state)
         if license:
             Academy.objects.create(user=instance, license=license)
