@@ -21,7 +21,9 @@ class JWTAuthenticationMiddleware:
                     '/api/token/refresh',
                     '/logout',
                     '/resend_otp',
-                    '/forget_pass'
+                    '/forget_pass',
+                    '/google',
+                    
                     
                 ]
         

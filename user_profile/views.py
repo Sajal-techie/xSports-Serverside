@@ -15,12 +15,12 @@ class ProfileData(views.APIView):
     def get(self,request): 
         try:
             user = request.user
-            profile = UserProfile.objects.get(user=user)
+            profile = UserProfile.objects.get(user=user) if UserProfile.objects.filter(user=user).exists() else None
             sports = Sport.objects.filter(user = user)
             sport_data = []
             for sport in sports:
                 sport_data.append(SportSerializer(sport).data)
-            print(sport_data)
+            print(sport_data,'HAI')
             user_data = {
                 'user' : CustomUsersSerializer(user).data,  # it will contain datas in Users model
                 'profile': UserProfileSerializer(profile).data,   # it will contain data from UserProfile model
@@ -47,13 +47,26 @@ class ProfileData(views.APIView):
                     instance.phone = request.data['phone']
                 if 'username' in request.data:
                     instance.username = request.data['username']
-                profile = UserProfile.objects.get(user=instance)
+                if UserProfile.objects.filter(user=instance).exists():
+                    profile = UserProfile.objects.get(user=instance)
+                else:
+                    profile = UserProfile.objects.create(user=instance)
+                # sports = Sport.objects.filter(user=instance)
                 if 'state' in request.data:
                     profile.state = request.data['state']
                 if 'district' in request.data:
                     profile.district = request.data['district']
                 if 'bio' in request.data:
                     profile.bio = request.data['bio']
+                if 'dob' in request.data:
+                    instance.dob = request.data['dob']
+                if 'sport' in request.data:
+                    Sport.objects.filter(user=instance).exclude(sport_name__in=[request.data['sport']]).delete()
+                    for sport in request.data['sport']:
+                        print(sport)
+                        if not Sport.objects.filter(user=instance,sport_name=sport).exists():
+                            Sport.objects.create(user=instance,sport_name = sport)
+                
                 instance.save()
                 profile.save()
                 return Response({

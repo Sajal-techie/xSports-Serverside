@@ -39,6 +39,7 @@ class Users(AbstractUser):
     is_academy = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_verified = models.BooleanField(default=False) 
+    auth_provider = models.CharField(max_length=50,default='email')
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username',]

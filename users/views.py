@@ -4,11 +4,12 @@ from rest_framework import status
 from django.contrib.auth import authenticate,login 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework.parsers import MultiPartParser
+from rest_framework.generics import GenericAPIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.validators import validate_email
-from users.serializers.user_serializer import CustomUsersSerializer,Academyserializer,UserProfileSerializer,SportSerializer
-from .models import Users,UserProfile,Sport,Academy
+from users.serializers.user_serializer import CustomUsersSerializer
+from users.serializers.google_serializer import GoogleSignInSerializer
+from .models import Users,Academy
 from .task import send_otp
 
 class Signup(APIView):
@@ -187,6 +188,17 @@ class Login(APIView):
            'role':role,
            'dob':user.dob
         })
+    
+
+class GoogleSignIn(GenericAPIView):
+    serializer_class=GoogleSignInSerializer
+
+    def post(self,request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = (serializer.validated_data)['access_token']
+        
+        return Response(data,status=status.HTTP_200_OK)
 
 class Logout(APIView):
     def post(self, request):
