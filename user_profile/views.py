@@ -3,29 +3,38 @@ from rest_framework import viewsets,views
 from rest_framework import status, generics
 from rest_framework.response import Response
 import os
+from django.core.cache import cache
+from rest_framework.permissions import IsAuthenticated
 from users.models import UserProfile,Sport,Academy,Users
 from users.serializers.user_serializer import CustomUsersSerializer,UserProfileSerializer,SportSerializer
 from .serializers.useracademy_serializer import UserAcademySerializer
 from .serializers.about_serializer import AboutSerializer
 from .serializers.achievement_serializer import AchievementSerializer
 from .models import UserAcademy,Achievements
+from common.custom_permission_classes import IsPlayer,IsAcademy,IsUser,IsAdmin 
 
 class ProfileData(views.APIView):
+    permission_classes = [IsUser,IsAuthenticated]
     # to get all data of a user from different tables 
     def get(self,request): 
         try:
             user = request.user
-            profile = UserProfile.objects.get(user=user) if UserProfile.objects.filter(user=user).exists() else None
-            sports = Sport.objects.filter(user = user)
-            sport_data = []
-            for sport in sports:
-                sport_data.append(SportSerializer(sport).data)
-            print(sport_data,'HAI')
-            user_data = {
-                'user' : CustomUsersSerializer(user).data,  # it will contain datas in Users model
-                'profile': UserProfileSerializer(profile).data,   # it will contain data from UserProfile model
-                'sport' : sport_data,   # it will contain data from Sport model
-            }
+            cache_key = f"profile_{user.id}"
+            user_data = cache.get(cache_key)
+            print(user_data,'cached user data')
+            if not user_data:
+                profile = UserProfile.objects.get(user=user) if UserProfile.objects.filter(user=user).exists() else None
+                sports = Sport.objects.filter(user = user)
+                sport_data = []
+                for sport in sports:
+                    sport_data.append(SportSerializer(sport).data)
+                print(sport_data,'HAI')
+                user_data = {
+                    'user' : CustomUsersSerializer(user).data,  # it will contain datas in Users model
+                    'profile': UserProfileSerializer(profile).data,   # it will contain data from UserProfile model
+                    'sport' : sport_data,   # it will contain data from Sport model
+                }
+                cache.set(cache_key,user_data,timeout=60*15) # adding data to cache
             return Response({
                 'status': status.HTTP_200_OK,
                 'user_details': user_data
@@ -69,6 +78,8 @@ class ProfileData(views.APIView):
                 
                 instance.save()
                 profile.save()
+                cache_key = f"profile_{instance.id}"
+                cache.delete(cache_key)  # deleting cached data after updating
                 return Response({
                     'status':status.HTTP_200_OK,
                     'message':'User details updated successfully'
@@ -87,6 +98,8 @@ class ProfileData(views.APIView):
 
 
 class UpdatePhoto(views.APIView):
+    permission_classes = [IsUser,IsAuthenticated]
+
     #  to update profile photo or cover photo
     def post(self, request,id):
         try:
@@ -118,6 +131,9 @@ class UpdatePhoto(views.APIView):
                 if oldpath and os.path.exists(oldpath):
                     print('hai removing old path ')
                     os.remove(oldpath)
+                
+                cache_key = f"profile_{user.id}"
+                cache.delete(cache_key)  # deleting cached data 
                 return Response({
                     'status': status.HTTP_200_OK,
                     'message': message
@@ -157,6 +173,9 @@ class UpdatePhoto(views.APIView):
             profile.save()
             if oldpath and os.path.exists(oldpath):
                 os.remove(oldpath)
+
+            cache_key = f"profile_{user.id}"
+            cache.delete(cache_key)
             return Response({
                 'status':status.HTTP_200_OK,
                 'message':message
@@ -169,14 +188,24 @@ class UpdatePhoto(views.APIView):
             })
 
 # update about of user 
-class UpdateAbout(generics.UpdateAPIView):
+class UpdateAbout(generics.UpdateAPIView): 
+    permission_classes = [IsUser,IsAuthenticated]
     serializer_class = AboutSerializer
+
+
     def get_object(self):
         return UserProfile.objects.get(user=self.request.user)
 
 
+    def perform_update(self, serializer):
+        cache_key = f"profile_{self.request.user.id}"
+        cache.delete(cache_key)
+        return super().perform_update(serializer)
+
+
 # CRUD academies of players
 class UserAcademyManage(viewsets.ModelViewSet):
+    permission_classes = [IsPlayer,IsAuthenticated]
     serializer_class = UserAcademySerializer
     lookup_field = 'id'
     
@@ -186,6 +215,7 @@ class UserAcademyManage(viewsets.ModelViewSet):
 
 
 class AchievementManage(viewsets.ModelViewSet):
+    permission_classes = [IsUser,IsAuthenticated]
     serializer_class = AchievementSerializer
     lookup_field = 'id'
 

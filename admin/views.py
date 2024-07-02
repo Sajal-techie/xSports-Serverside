@@ -4,11 +4,15 @@ from rest_framework.response import Response
 from django.db.models import Q
 from rest_framework import status
 from django.conf import settings
+from rest_framework.permissions import IsAuthenticated
 from users.serializers.user_serializer import CustomUsersSerializer,SportSerializer,Academyserializer,UserProfileSerializer
 from users.models import Users,Sport,UserProfile,Academy
 from .task import send_alert
+from common.custom_permission_classes import IsAdmin
 
 class AcademyManage(APIView):
+    permission_classes = [IsAdmin,IsAuthenticated]
+
     def get(self, request):
         users = Users.objects.filter(is_academy=True).order_by('-id')
         user_data = []
@@ -45,6 +49,8 @@ class AcademyManage(APIView):
         
 
 class ToggleIsCertified(APIView):
+    permission_classes = [IsAuthenticated,IsAdmin]
+
     def post(self,request,id,):
         try:
             value = request.data.get('value',None)
@@ -76,6 +82,8 @@ class ToggleIsCertified(APIView):
     
 
 class PlayerManage(APIView):
+    permission_classes = [IsAdmin,IsAuthenticated]
+
     def get(self, request):
         players = Users.objects.filter(Q (is_academy=False) & Q(is_staff=False) & Q(is_superuser=False)).order_by('-id')
         player_data = []
@@ -107,6 +115,8 @@ class PlayerManage(APIView):
 
 
 class ToggleActive(APIView):
+    permission_classes = [IsAuthenticated,IsAdmin]
+    
     def post(self, request, id):
         print('never say never')
         try:
