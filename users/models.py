@@ -72,6 +72,6 @@ class UserProfile(DataBaseModels):
 
 
 class Academy(DataBaseModels):
-    user = models.ForeignKey(Users, on_delete=models.CASCADE, null=True)
+    user = models.ForeignKey(Users, on_delete=models.CASCADE,related_name="academy_user", null=True)
     license = models.FileField(upload_to='images/',null=True, blank=True)
     is_certified = models.BooleanField(default=False)

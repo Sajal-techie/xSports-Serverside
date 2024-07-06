@@ -13,6 +13,7 @@ urlpatterns = [
     path('', include('users.urls')), 
     path('', include('admin.urls')), 
     path('', include('user_profile.urls')), 
+    path('', include('selection_trial.urls')), 
 
 ] 
    

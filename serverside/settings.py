@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     # custom apps
     'users',
     'user_profile',
+    'selection_trial',
 
 ]
 AUTH_USER_MODEL = 'users.Users'
