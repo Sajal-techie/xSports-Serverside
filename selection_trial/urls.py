@@ -4,7 +4,8 @@ router = routers.DefaultRouter()
 from .views import *
 
 urlpatterns = [
-    path('trial',TrialViewSet.as_view({'get':'list','post':'create'}),name='trial'), 
+    path('trial',TrialViewSet.as_view({'get':'list','post':'create',}),name='trial'), 
+    path('trial/<int:id>',TrialViewSet.as_view({'get':'retrieve','put':'update','delete':'destroy'}),name='trial'), 
     # path('update_photo/<int:id>', UpdatePhoto.as_view(), name='update_photo'),
     # path('delete_photo/<int:id>',UpdatePhoto.as_view(),name='delete_photo'),
     # path('update_about',UpdateAbout.as_view(),name='update_about'),

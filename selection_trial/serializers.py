@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Trial,TrialRequirement
-
+from user_profile.serializers.useracademy_serializer import AcademyDetailSerialiezer 
 
 class TrialRequirementSerializer(serializers.ModelSerializer):
     class Meta:
@@ -11,13 +11,14 @@ class TrialRequirementSerializer(serializers.ModelSerializer):
 class TrialSerializer(serializers.ModelSerializer):
     additionalRequirements = serializers.ListField(required=False)  # to create a new trial using this additional requirement
     additional_requirements = TrialRequirementSerializer(many=True, read_only=True) # to pass additional requirement to front end
-
+    academy_details = AcademyDetailSerialiezer(source='academy',read_only=True,required=False)
+    
     class Meta:
         model = Trial
         fields = [
             'id', 'academy', 'sport', 'name', 'trial_date', 'trial_time', 'venue', 'deadline', 
             'district', 'state', 'location','total_participant_limit', 'registration_fee', 'description', 'additionalRequirements',
-            'is_participant_limit', 'is_registration_fee', 'image', 'additional_requirements' ,
+            'is_participant_limit', 'is_registration_fee', 'image', 'additional_requirements' ,'academy_details'
         ]
     
     def create(self, validated_data):
