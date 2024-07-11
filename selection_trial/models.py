@@ -1,6 +1,9 @@
 from django.db import models
 from common.base_models import DataBaseModels
 from users.models import Users
+from django.dispatch import receiver
+from django.db.models.signals import post_save
+import random
 
 
 class Trial(DataBaseModels):
@@ -39,7 +42,7 @@ class TrialRequirement(DataBaseModels):
 class PlayersInTrial(DataBaseModels):
     player = models.ForeignKey(Users, on_delete=models.CASCADE, related_name="player")
     trial = models.ForeignKey(Trial, on_delete=models.CASCADE, related_name="trial")
-    status = models.CharField(max_length=200, null=True, blank=True)
+    status = models.CharField(max_length=200, null=True, blank=True,default='registered')
     name = models.CharField(max_length=255, null=True, blank=True)
     dob = models.DateField(null=True, blank=True)
     number = models.CharField(max_length=30, null=True,blank=True)
@@ -62,3 +65,14 @@ class PlayersInTrialDetails(DataBaseModels):
 
     def __str__(self) -> str:
         return self.requirement + " " + self.player_trial.name + " " + self.player_trial.player.username
+    
+
+
+@receiver(post_save, sender = PlayersInTrial)
+def create_unique_id_on_joining_trials(sender,instance,created,*args, **kwargs):
+    print('in signals',instance,created,args,kwargs)
+    if created and not instance.unique_id:
+        num = random.randint(10,99)
+        instance.unique_id = instance.name.replace(" ","") + str(instance.id) + str(num) 
+        print(instance.unique_id)
+        instance.save()

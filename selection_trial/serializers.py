@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Trial,TrialRequirement
+from .models import Trial,TrialRequirement,PlayersInTrial,PlayersInTrialDetails
 from user_profile.serializers.useracademy_serializer import AcademyDetailSerialiezer 
 
 class TrialRequirementSerializer(serializers.ModelSerializer):
@@ -35,3 +35,29 @@ class TrialSerializer(serializers.ModelSerializer):
 
         print(trial)
         return trial
+
+
+class PlayersInTrialDetialsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PlayersInTrialDetails
+        fields = ['id','requirement','value']
+
+
+class PlayersInTrialSerializer(serializers.ModelSerializer):
+    additional_requirements = PlayersInTrialDetialsSerializer(many=True,required=False)
+    class Meta:
+        model = PlayersInTrial
+        fields = [
+            'id', 'player', 'trial', 'status', 'name', 'dob', 'number', 'email', 
+            'state', 'district', 'unique_id', 'achievement','additional_requirements'
+        ]
+
+    def create(self, validated_data):
+        additional_requirements = validated_data.pop('additional_requirements',{})
+        print(validated_data,'validated data',additional_requirements)
+        player = PlayersInTrial.objects.create(status='registered',**validated_data)
+        for details in additional_requirements:
+            print(details,details['requirement'])
+            PlayersInTrialDetails.objects.create(player_trial = player,requirement=details['requirement'],value=details['value'])
+        
+        return player

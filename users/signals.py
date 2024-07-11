@@ -28,3 +28,6 @@
 #     except Exception as e:
 #         # Handle exceptions (e.g., email sending failure or user retrieval failure)
 #         print(f"Error sending OTP: {e}")
+
+
+#  moved otp to celery (task.py)
