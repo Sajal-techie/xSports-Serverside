@@ -82,7 +82,7 @@ class ToggleIsCertified(APIView):
     
 
 class PlayerManage(APIView):
-    permission_classes = [IsAdmin,IsAuthenticated]
+    # permission_classes = [IsAdmin,IsAuthenticated]
 
     def get(self, request):
         players = Users.objects.filter(Q (is_academy=False) & Q(is_staff=False) & Q(is_superuser=False)).order_by('-id')
@@ -92,7 +92,10 @@ class PlayerManage(APIView):
             if UserProfile.objects.filter(user=user).exists():
                 user_profile = UserProfile.objects.get(user=user)
             if Sport.objects.filter(user=user).exists():
-                sport = Sport.objects.get(user=user)
+                sports = Sport.objects.filter(user=user)
+                sport_data = []
+                for sport in sports:
+                    sport_data.append( SportSerializer(sport).data)
             player_data.append({
                 'id':user.id,
                 'username': user.username,
@@ -100,7 +103,7 @@ class PlayerManage(APIView):
                 'dob':user.dob,
                 'is_active':user.is_active,
                 'profile': UserProfileSerializer(user_profile).data,
-                'sport':SportSerializer(sport).data,
+                'sport':sport_data,
             })
         if not player_data: 
             return Response({

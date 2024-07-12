@@ -70,7 +70,6 @@ class PlayersInTrialDetails(DataBaseModels):
 
 @receiver(post_save, sender = PlayersInTrial)
 def create_unique_id_on_joining_trials(sender,instance,created,*args, **kwargs):
-    print('in signals',instance,created,args,kwargs)
     if created and not instance.unique_id:
         num = random.randint(10,99)
         instance.unique_id = instance.name.replace(" ","") + str(instance.id) + str(num) 

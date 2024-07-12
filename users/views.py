@@ -32,7 +32,10 @@ class Signup(APIView):
        
         email = data['email']
         print(email,'\n',data)
-        data.setlist('sport', request.data.getlist('sport[]'))
+
+        if 'is_academy' in data:
+            if data['is_academy'] == 'true':
+                data.setlist('sport', request.data.getlist('sport[]',[]))
         print(data,'sports data')
 
         if 'username' in data:

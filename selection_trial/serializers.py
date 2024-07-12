@@ -12,16 +12,16 @@ class TrialSerializer(serializers.ModelSerializer):
     additionalRequirements = serializers.ListField(required=False)  # to create a new trial using this additional requirement
     additional_requirements = TrialRequirementSerializer(many=True, read_only=True) # to pass additional requirement to front end
     academy_details = AcademyDetailSerialiezer(source='academy',read_only=True,required=False)
-    
+    player_count = serializers.IntegerField(read_only=True,required=False)
     class Meta:
         model = Trial
         fields = [
             'id', 'academy', 'sport', 'name', 'trial_date', 'trial_time', 'venue', 'deadline', 
             'district', 'state', 'location','total_participant_limit', 'registration_fee', 'description', 'additionalRequirements',
-            'is_participant_limit', 'is_registration_fee', 'image', 'additional_requirements' ,'academy_details'
+            'is_participant_limit', 'is_registration_fee', 'image', 'additional_requirements' ,'academy_details','player_count',
         ]
     
-    def create(self, validated_data):
+    def create(self, validated_data): 
         print(validated_data,'validated data')
         requirement_data = validated_data.pop('additionalRequirements',[])
         user = self.context['request'].user
@@ -44,7 +44,7 @@ class PlayersInTrialDetialsSerializer(serializers.ModelSerializer):
 
 
 class PlayersInTrialSerializer(serializers.ModelSerializer):
-    additional_requirements = PlayersInTrialDetialsSerializer(many=True,required=False)
+    additional_requirements = PlayersInTrialDetialsSerializer(many=True,required=False,source='playersintrial')
     class Meta:
         model = PlayersInTrial
         fields = [
