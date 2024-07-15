@@ -51,7 +51,7 @@ class PlayersInTrial(DataBaseModels):
     district = models.CharField(max_length=100, null=True, blank=True)
     unique_id = models.CharField(max_length=255, null=True, blank=True)
     achievement = models.CharField(max_length=255, null=True, blank=True)
-
+    payment_status = models.CharField(max_length=20,null=True,blank=True)  
 
     def __str__(self) -> str:
         return self.name + " " + self.trial.name

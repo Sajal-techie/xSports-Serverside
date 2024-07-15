@@ -16,7 +16,20 @@ def send_otp(self,email):
         user = Users.objects.get(email=email)
         user.otp = otp
         user.save()
+        delete_otp.apply_async((user.id,),countdown=1800) # delete otp from db after 30 mins
         send_mail(subject, message, email_from,[email])
         print(user.otp,str(otp), str(user.username), 'in send otp function')
     except Exception as e:
         print(f"Error sending OTP: {e}")
+
+
+# to delete otp from db 
+@shared_task
+def delete_otp(id):
+    try:
+        print(id)
+        user = Users.objects.get(id=id)
+        user.otp = None
+        user.save()
+    except Exception as e:
+        print(f"error deletin otp{e} eror")

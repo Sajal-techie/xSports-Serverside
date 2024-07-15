@@ -135,7 +135,6 @@ CACHES = {
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
         },
-        # 'KEY_PREFIX': 'example'
     }
 }
 
@@ -206,3 +205,9 @@ CELERY_TIMEZONE="Asia/Kolkata"
 GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET =config("GOOOGLE_CLIENT_SECRET")
 SOCIAL_AUTH_PASSWORD = config("SOCIAL_AUTH_PASSWORD") 
+
+
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET")
+
+SITE_URL = config("SITE_URL")

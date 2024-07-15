@@ -1,9 +1,6 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from django.contrib.auth import authenticate,login 
-from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.generics import GenericAPIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.validators import validate_email
@@ -89,9 +86,14 @@ class VerifyOtp(APIView):
         try:
             data = request.data
             email = data['email'] if 'email' in data else None
-            otp = data['otp']
+            otp = data['otp'] if 'otp' in data else None
             user = Users.objects.get(email=email)
             print(data,otp,email,user.otp)
+            if not user.otp:
+                return Response({
+                    'status':status.HTTP_400_BAD_REQUEST,
+                    'message':"OTP Expired try resending otp"
+                }) 
             if user.otp == otp:
                 user.otp = None
                 user.is_verified = True
@@ -105,7 +107,7 @@ class VerifyOtp(APIView):
                 'message': 'Invalid OTP'
             }) 
         except Exception as e:
-            print(e,'verify opt error')
+            print(e,'verify OTP error')
             return Response({
                 'status': status.HTTP_400_BAD_REQUEST,
                 'message':'Your token has been expired try login again '

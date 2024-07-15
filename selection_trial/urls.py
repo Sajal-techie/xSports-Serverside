@@ -6,6 +6,9 @@ from .views import *
 players_in_trial_list = PlayersInTrialViewSet.as_view({
     'get': 'list_players_in_trial'
 })
+trial_player_details = TrialViewSet.as_view({
+    'get':'player_detials_in_trial'
+})
 
 
 urlpatterns = [
@@ -14,9 +17,8 @@ urlpatterns = [
     path('player_trial', PlayersInTrialViewSet.as_view({'get':'list','post':'create',}), name='player_trial'),
     path('player_trial/<int:id>',PlayersInTrialViewSet.as_view({'get':'retrieve','put':'update','delete':'destroy', 'patch': 'partial_update'}),name='player_trial'),
     path('players_in_trial_list/<int:trial_id>', players_in_trial_list, name='players_in_trial_list'),
-    path('player_exist/<int:id>',PlayerExistInTrialView.as_view(),name='player_exist'),
-    # path('user_academy',UserAcademyManage.as_view({'get':'list','post':'create'}),name='user_academy'),
-    # path('user_academy/<int:id>',UserAcademyManage.as_view({'put':'update','delete':'destroy'}),name='user_academy'),
-    # path('user_achievement',AchievementManage.as_view({'get':'list','post':'create'}),name='user_achievement'),
-    # path('user_achievement/<int:id>',AchievementManage.as_view({'put':'update','delete':'destroy'}),name='user_achievement'),
+    path('trial_player_details/<int:id>', trial_player_details, name='trial_player_details'),
+    # path('player_exist/<int:id>',PlayerExistInTrialView.as_view(),name='player_exist'),
+    # path('create_checkout_session/<int:id>',StripeCheckoutView.as_view(),name='create_checkout_session'),
+    # path("webhook_test", WebHook.as_view(), name="webhook_test")
 ] 

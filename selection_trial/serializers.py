@@ -22,7 +22,7 @@ class TrialSerializer(serializers.ModelSerializer):
         ]
     
     def create(self, validated_data): 
-        print(validated_data,'validated data')
+        print(validated_data,'validated data') 
         requirement_data = validated_data.pop('additionalRequirements',[])
         user = self.context['request'].user
         print(user)
@@ -48,12 +48,21 @@ class PlayersInTrialSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlayersInTrial
         fields = [
-            'id', 'player', 'trial', 'status', 'name', 'dob', 'number', 'email', 
+            'id', 'player', 'trial', 'status', 'name', 'dob', 'number', 'email', 'payment_status',
             'state', 'district', 'unique_id', 'achievement','additional_requirements'
         ]
 
+    def validate(self, attrs):
+        print(attrs,'data in validate ----------')
+        #  return error if player already joined the same trial 
+        if PlayersInTrial.objects.filter(trial=attrs['trial'],player=attrs['player']).exists():
+            print('alreadu exist mwone')
+            raise serializers.ValidationError('Already registered in this trial ')
+        print('redu redu')
+        return super().validate(attrs) 
+
     def create(self, validated_data):
-        additional_requirements = validated_data.pop('additional_requirements',{})
+        additional_requirements = validated_data.pop('playersintrial',[])
         print(validated_data,'validated data',additional_requirements)
         player = PlayersInTrial.objects.create(status='registered',**validated_data)
         for details in additional_requirements:
