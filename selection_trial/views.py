@@ -1,49 +1,88 @@
-from rest_framework import viewsets,views,response,status
+from rest_framework import viewsets,views,response,status,generics
 from rest_framework.decorators import action
 from datetime import date
-from django.db.models import Count
+from django.db.models import Count,Q
 from django.conf import settings
 from django.db import transaction
 import stripe
 import stripe.error
 from .models import Trial,PlayersInTrial
-from .serializers import TrialSerializer,PlayersInTrialSerializer
+from .serializers import TrialSerializer,PlayersInTrialSerializer,TrialHistorySerializer
 from common.custom_permission_classes import IsAcademy,IsPlayer,IsUser,IsAdmin
 from .tasks import send_status_mail,send_trial_cancellation_mail
+from rest_framework.pagination import PageNumberPagination
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 webhook_secret = settings.STRIPE_WEBHOOK_SECRET
+
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 2
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 class TrialViewSet(viewsets.ModelViewSet):
     queryset = Trial.objects.all() 
     serializer_class = TrialSerializer
     lookup_field = 'id'
     permission_classes = [IsUser]
+    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
+        print('=------------------------------------------------------------')
+
         user = self.request.user
+        queryset = Trial.objects.filter(is_active=True).annotate(player_count=Count('trial')).order_by('trial_date')
+
+        search_term = self.request.query_params.get('search', None)
+        sport = self.request.query_params.get('sport', None)
+        state = self.request.query_params.get('state', None)
+        payment = self.request.query_params.get('payment', None)
+
+        if search_term:
+            queryset = queryset.filter(Q(name__icontains=search_term) | Q (description__icontains=search_term))
+        
+        if sport:
+            queryset = queryset.filter(sport=sport)
+        
+        if state:
+            queryset = queryset.filter(state=state)
+        
+        if payment:
+            payment = False if payment == 'false' else True
+            queryset = queryset.filter(is_registration_fee=payment)
+
         if user.is_academy:
             # if requested by academy then only show only the trial created by them 
-            return Trial.objects.filter(academy = user,is_active=True).annotate(player_count=Count('trial')).order_by('-trial_date')
-        today = date.today()
-        
+            queryset = queryset.filter(academy=user)
+            print(queryset,'if academy')
+            return queryset
+            
         # if requested by players then show all trials with trialdate less than today's date
-        return Trial.objects.filter(trial_date__gte=today,is_active=True).annotate(player_count=Count('trial')).select_related('academy').order_by('trial_date')
+        today = date.today()
+        queryset = queryset.filter(trial_date__gte=today).select_related('academy')
+        return queryset
 
-    def retrieve(self, request, *args, **kwargs):
-        print(request.data, args,kwargs)
-        return super().retrieve(request, *args, **kwargs)
+    def retrieve(self, request,id, *args, **kwargs):
+        print(request.data,id, args,kwargs,'==================retrive===========')
+        try:
+            trial = Trial.objects.get(id=id)
+        except Exception as e:
+            return response.Response(data="Not found",status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = TrialSerializer(trial)
+        return response.Response(serializer.data, status=status.HTTP_200_OK)
     
     # make trial is_active to false if trial cancelled by academy 
     def destroy(self, request,id, *args, **kwargs):
-        print(self,request,args, kwargs,id) 
+        reason = request.query_params.get('reason', None)
+        print(self,request.data,args, kwargs,id,reason) 
         trial = Trial.objects.get(id=id)
         players_in_trial = PlayersInTrial.objects.filter(trial=trial)
 
         recipient_list = [player.email for player in players_in_trial]
         print(recipient_list,'emails-------')
         if recipient_list:
-            send_trial_cancellation_mail.delay(recipient_list,trial.name,trial.academy.username)
+            send_trial_cancellation_mail.delay(recipient_list,trial.name,trial.academy.username,reason)
         trial.is_active = False
         trial.save()
         return response.Response(status=status.HTTP_200_OK)
@@ -56,7 +95,7 @@ class TrialViewSet(viewsets.ModelViewSet):
             return response.Response(status=status.HTTP_204_NO_CONTENT)
 
         player_details = PlayersInTrial.objects.get(player=user,trial=id)
-        if player_details.payment_status == 'pending':
+        if player_details.trial.is_registration_fee and player_details.payment_status == 'pending':
             # if the payment is not completed then remove the data 
             player_details.delete()
             return response.Response(status=status.HTTP_204_NO_CONTENT)
@@ -170,94 +209,13 @@ class PlayersInTrialViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
     
 
-# to check if player joined in a trial and return its id
-# class PlayerExistInTrialView(views.APIView):
-#     def get(self,request,id,*args, **kwargs):
-#         user = request.user
-#         total_count = PlayersInTrial.objects.filter(trial=id).count() 
-#         if PlayersInTrial.objects.filter(player=user,trial=id).exists():
-#             print('hai',id,*args, **kwargs)
-#             player_trial = PlayersInTrial.objects.get(player=user,trial=id)
-#             print(player_trial.status,player_trial.unique_id,total_count)
-#             return response.Response(data={
-#                 'status':player_trial.status,
-#                 'unique_id':player_trial.unique_id,
-#                 'count':total_count
-#             },status=status.HTTP_200_OK)
-#         else:
-#             print(total_count)
-#             return response.Response(data={'count':total_count},status=status.HTTP_206_PARTIAL_CONTENT) 
-        
-# to create stripe intent and return id to front end
-# class StripeCheckoutView(views.APIView):
-#     def post(self,request,id,*args, **kwargs):
-#         try:
-#             data =  request.data
-#             print(args,kwargs,id,data)
-#             trial = Trial.objects.get(id=id)
-#             pending_reg_id = data['pending_reg_id'] # id of player to change payment status
-#             # price = data['price']
-#             # product_name = data['product_name']
-#             print('in stripe checkout view ',request.data,trial)
-#             checkout_session = stripe.checkout.Session.create(
-#                 line_items=[
-#                         {
-#                             'price_data' :{
-#                             'currency' : 'inr',  
-#                                 'product_data': {
-#                                 'name': trial.name,
-#                                 },
-#                             'unit_amount': int(trial.registration_fee * 100)
-#                             },
-#                         'quantity': 1,
-#                     },
-#                 ],
-#                 mode='payment',
-#                 success_url=f'{settings.SITE_URL}/payment_success?registrationId={pending_reg_id}&trialId={trial.id}',
-#                 cancel_url=f'{settings.SITE_URL}/payment_failed?registrationId={pending_reg_id}&trialId={trial.id}',
-#                 client_reference_id=pending_reg_id
-#             )
-#             print('going to redirect')
-#             # return redirect(checkout_session.url)
-#             return response.Response({'sessionId':checkout_session.id})
-        
-#         except Exception as e:
-#             print(e, ' eeor in stripe checkout')
-#             return response.Response({
-#                 'error':'Some eror in response',
-#                 'status':status.HTTP_500_INTERNAL_SERVER_ERROR
-#                 })
- 
+class TrialHistory(generics.ListAPIView):
+    serializer_class = TrialHistorySerializer
+    permission_classes = [IsPlayer]
+    queryset = PlayersInTrial.objects.all()
 
-# class WebHook(views.APIView):
-#     def post(self,request):
-#         print('in webhook view')
-#         event = None
-#         payload = request.body
-#         sig_header = request.META['HTTP_STRIPE_SIGNATURE']
-#         try:
-#             event = stripe.Webhook.construct_event(
-#                 payload,sig_header,webhook_secret
-#             )
-#             print(event, ' event')
-#         except ValueError as err:
-#             print(err, 'value error')
-#             raise err
-#         except stripe.error.SignatureVerificationError as err:
-#             print(err, 'signature verification error')
-#             raise err
-#         except Exception as e:
-#             print(e, 'exception ouw')
+    def get_queryset(self):
+        user = self.request.user
+        print(user)
+        return PlayersInTrial.objects.filter(player=user).select_related('trial')
 
-#         if event['type'] == 'checkout.session.completed':
-#             session = event['data']['object']
-#             registration_id = session['client_reference_id']
-#             players_in_trial_viewset = PlayersInTrialViewSet()
-#             return players_in_trial_viewset.confirm_payment(registration_id)
-#         elif event['type'] == 'checkout.session.expired':
-#             session = event['data']['object']
-#             registration_id = session['client_reference_id']
-#             players_in_trial_viewset = PlayersInTrialViewSet()
-#             return players_in_trial_viewset.cancel_payment(registration_id)
-#         else:
-#             return response.Response({"message": f"Unhandled event type {event['type']}"}, status=status.HTTP_200_OK)

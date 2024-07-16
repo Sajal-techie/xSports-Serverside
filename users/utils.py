@@ -18,6 +18,7 @@ class Google():
             return "token is invalid or has expired"
     
 def login_social_user(email,password):
+    print(email,password)
     user = authenticate(email=email,password=password)
     print(user, 'login with user')
     token_serializer = TokenObtainPairSerializer(data={'email':email,'password':password})
@@ -36,7 +37,7 @@ def login_social_user(email,password):
     except Exception as e:
         print(e)
         raise AuthenticationFailed(
-            detail="User not found try signin again"
+            detail=str(e)
         )
 
 def register_social_user(provider,email,username):

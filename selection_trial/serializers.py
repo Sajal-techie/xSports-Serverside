@@ -44,12 +44,12 @@ class PlayersInTrialDetialsSerializer(serializers.ModelSerializer):
 
 
 class PlayersInTrialSerializer(serializers.ModelSerializer):
-    additional_requirements = PlayersInTrialDetialsSerializer(many=True,required=False,source='playersintrial')
+    additional_requirements = PlayersInTrialDetialsSerializer(many=True, required=False, source='playersintrial')
     class Meta:
         model = PlayersInTrial
         fields = [
             'id', 'player', 'trial', 'status', 'name', 'dob', 'number', 'email', 'payment_status',
-            'state', 'district', 'unique_id', 'achievement','additional_requirements'
+            'state', 'district', 'unique_id', 'achievement','additional_requirements','trial'
         ]
 
     def validate(self, attrs):
@@ -70,3 +70,29 @@ class PlayersInTrialSerializer(serializers.ModelSerializer):
             PlayersInTrialDetails.objects.create(player_trial = player,requirement=details['requirement'],value=details['value'])
         
         return player
+    
+
+
+class TrialHistorySerializer(serializers.ModelSerializer):
+    academy_name = serializers.CharField(source='trial.academy.username')
+    trial_id = serializers.IntegerField(source='trial.id')
+    trial_name = serializers.CharField(source='trial.name')
+    trial_sport = serializers.CharField(source='trial.sport')
+    trial_date = serializers.DateField(source='trial.trial_date')
+    trial_time = serializers.TimeField(source='trial.trial_time')
+    trial_location = serializers.CharField(source='trial.location')
+    trial_venue = serializers.CharField(source='trial.venue')
+    trial_state = serializers.CharField(source='trial.state')
+    trial_district = serializers.CharField(source='trial.district')
+    trial_registration_fee = serializers.IntegerField(source='trial.registration_fee')
+    trial_description = serializers.CharField(source='trial.description')
+    trial_image = serializers.ImageField(source='trial.image')
+
+    class Meta:
+        model = PlayersInTrial
+        fields = [
+            'trial_name', 'trial_sport', 'trial_date', 'trial_time','academy_name',
+            'trial_location', 'trial_venue', 'trial_state', 'trial_district',
+            'trial_registration_fee', 'trial_description', 'trial_image','trial_id',
+            'status', 'name', 'unique_id', 'number', 'email'
+        ]
