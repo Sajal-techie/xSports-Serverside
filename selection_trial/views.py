@@ -10,37 +10,45 @@ from .models import Trial,PlayersInTrial
 from .serializers import TrialSerializer,PlayersInTrialSerializer,TrialHistorySerializer
 from common.custom_permission_classes import IsAcademy,IsPlayer,IsUser,IsAdmin
 from .tasks import send_status_mail,send_trial_cancellation_mail
-from rest_framework.pagination import PageNumberPagination
+from common.custom_pagination_class import StandardResultsSetPagination
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 webhook_secret = settings.STRIPE_WEBHOOK_SECRET
 
-class StandardResultsSetPagination(PageNumberPagination):
-    page_size = 2
-    page_size_query_param = 'page_size'
-    max_page_size = 100
 
 class TrialViewSet(viewsets.ModelViewSet):
     queryset = Trial.objects.all() 
     serializer_class = TrialSerializer
     lookup_field = 'id'
-    permission_classes = [IsUser]
-    pagination_class = StandardResultsSetPagination
+
+    def get_permissions(self):
+        print(self.action)
+        if self.action in ['list', 'retrieve','player_detials_in_trial']:
+            permission_classes = [IsUser | IsAdmin]
+            print('admin user ')
+        else:
+            print('else')
+            permission_classes = [IsAcademy]
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         print('=------------------------------------------------------------')
 
         user = self.request.user
-        queryset = Trial.objects.filter(is_active=True).annotate(player_count=Count('trial')).order_by('trial_date')
-
+        queryset = Trial.objects.all().annotate(player_count=Count('trial')).order_by('trial_date')
+        print(queryset)
         search_term = self.request.query_params.get('search', None)
         sport = self.request.query_params.get('sport', None)
         state = self.request.query_params.get('state', None)
         payment = self.request.query_params.get('payment', None)
 
         if search_term:
-            queryset = queryset.filter(Q(name__icontains=search_term) | Q (description__icontains=search_term))
-        
+            queryset = queryset.filter(Q(name__icontains=search_term) |
+                                        Q (description__icontains=search_term) |
+                                          Q(academy__username__icontains=search_term) |
+                                            Q(sport__icontains=search_term) 
+                                            )
+            
         if sport:
             queryset = queryset.filter(sport=sport)
         
@@ -51,16 +59,24 @@ class TrialViewSet(viewsets.ModelViewSet):
             payment = False if payment == 'false' else True
             queryset = queryset.filter(is_registration_fee=payment)
 
+        if user.is_staff:
+            print(queryset)
+            queryset = queryset.order_by('id')
+            self.pagination_class = StandardResultsSetPagination
+            return queryset
+
         if user.is_academy:
             # if requested by academy then only show only the trial created by them 
-            queryset = queryset.filter(academy=user)
+            queryset = queryset.filter(academy=user,is_active=True)
             print(queryset,'if academy')
             return queryset
             
         # if requested by players then show all trials with trialdate less than today's date
         today = date.today()
-        queryset = queryset.filter(trial_date__gte=today).select_related('academy')
+        self.pagination_class = StandardResultsSetPagination
+        queryset = queryset.filter(trial_date__gte=today,is_active=True).select_related('academy')
         return queryset
+
 
     def retrieve(self, request,id, *args, **kwargs):
         print(request.data,id, args,kwargs,'==================retrive===========')
@@ -168,6 +184,7 @@ class PlayersInTrialViewSet(viewsets.ModelViewSet):
             # if payement is cancelled delete the current regsitration
             player_registration.delete()
             return response.Response({'message':"error in stripe payment"},status=status.HTTP_400_BAD_REQUEST)
+
 
     # to list players joined in a trial 
     def list_players_in_trial(self,request,trial_id=None):

@@ -4,10 +4,13 @@ from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.validators import validate_email
+from django.http import JsonResponse
+from django.contrib.postgres.search import SearchQuery, SearchVector, SearchRank 
 from users.serializers.user_serializer import CustomUsersSerializer
 from users.serializers.google_serializer import GoogleSignInSerializer
 from .models import Users,Academy
 from .task import send_otp
+from selection_trial.models import Trial
 
 class Signup(APIView):
     # parser_classes = (MultiPartParser,)
@@ -276,3 +279,21 @@ class ForgetPassword(APIView):
                 'status':status.HTTP_400_BAD_REQUEST,
                 'message': 'Internal Server Error'
             })
+
+
+class SearchResult(APIView):
+    def get(self,request):
+        query = request.GET.get('q','')
+        if query:
+            players = Users.objects.filter(username__icontains=query,is_academy=False).values('username')
+            academies = Users.objects.filter(username__icontains=query,is_academy=True).values('username')
+            trials = Trial.objects.filter(name__icontains=query).values('name')
+
+            suggestions = []
+            suggestions.extend([{'name': player['username'], 'type': 'Player'} for player in players])
+            suggestions.extend([{'name': academy['username'], 'type': 'Academy'} for academy in academies])
+            # suggestions.extend([{'name': post['title'], 'type': 'Post'} for post in posts])
+            suggestions.extend([{'name': trial['name'], 'type': 'Trial'} for trial in trials])
+
+            return JsonResponse(suggestions, safe=False)
+        return JsonResponse({'message': 'No query provided.'}, status=400)

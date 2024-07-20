@@ -30,3 +30,43 @@ class Achievements(DataBaseModels):
     
     def __str__(self) -> str:
         return f"{self.user.username}'s {self.title}"
+    
+
+class FriendRequest(DataBaseModels):
+    PENDING = 'pending'
+    ACCEPTED = 'accepted'
+    REJECTED = 'rejected'
+    STATUS_CHOICES = [
+        (PENDING, 'Pending'),
+        (ACCEPTED, 'Accepted'),
+        (REJECTED, 'Rejected')
+    ]
+
+    from_user = models.ForeignKey(Users, related_name='sent_friend_requests', on_delete=models.CASCADE)
+    to_user = models.ForeignKey(Users, related_name='recieved_friend_requests', on_delete=models.CASCADE)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
+
+
+    class Meta:
+        unique_together = ('from_user', 'to_user')
+
+    
+    def accept(self):
+        self.status = self.ACCEPTED
+        self.save()
+
+        self.from_user.friends.add(self.to_user)
+        self.to_user.friends.add(self.from_user)
+    
+    def reject(self):
+        self.status = self.REJECTED
+        self.save()
+    
+
+
+class Follow(DataBaseModels):
+    player = models.ForeignKey(Users, related_name='following', on_delete=models.CASCADE)
+    academy = models.ForeignKey(Users, related_name='followers', on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('player', 'academy')

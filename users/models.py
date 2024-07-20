@@ -31,24 +31,32 @@ class CustomUserManager(BaseUserManager):
 
  
 class Users(AbstractUser):
-    username = models.CharField(max_length=255, blank=True,null=True )
+    username = models.CharField(max_length=255, blank=True, null=True, db_index=True )
     email = models.EmailField(unique=True, max_length=255)
-    phone = models.CharField(max_length=15,null=True,blank=True)
+    phone = models.CharField(max_length=15, null=True, blank=True)
     otp = models.CharField(max_length=10, null=True, blank=True)
-    dob = models.DateField(null=True,blank=True)  #established date for academy
+    dob = models.DateField(null=True, blank=True)  #established date for academy
     is_academy = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_verified = models.BooleanField(default=False) 
-    auth_provider = models.CharField(max_length=50,default='email')
-
+    auth_provider = models.CharField(max_length=50, default='email')
+    friends = models.ManyToManyField('self', symmetrical=True, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True,null=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
+    
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username',]
     objects = CustomUserManager()
 
     def __str__(self) -> str:
         return f"{self.username}user instance"   
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['username'])
+        ]
 
-
+ 
 class Sport(DataBaseModels):
     sport_name = models.CharField(max_length=255)
     user = models.ForeignKey(Users, on_delete=models.CASCADE, null=True)

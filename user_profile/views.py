@@ -1,15 +1,18 @@
 from django.shortcuts import render
 from rest_framework import viewsets,views,status, generics
+from rest_framework.decorators import action
 from rest_framework.response import Response
 import os
 from django.core.cache import cache
+from django.db.models import Q
 from rest_framework.permissions import IsAuthenticated
 from users.models import UserProfile,Sport,Academy,Users
 from users.serializers.user_serializer import CustomUsersSerializer,UserProfileSerializer,SportSerializer
 from .serializers.useracademy_serializer import UserAcademySerializer
 from .serializers.about_serializer import AboutSerializer
 from .serializers.achievement_serializer import AchievementSerializer
-from .models import UserAcademy,Achievements
+from .serializers.connection_serializer import FriendRequestSerializer,FollowSerializer,FriendListSerializer
+from .models import UserAcademy,Achievements,FriendRequest,Follow
 from common.custom_permission_classes import IsPlayer,IsAcademy,IsUser,IsAdmin 
 
 class ProfileData(views.APIView):
@@ -119,7 +122,7 @@ class UpdatePhoto(views.APIView):
                     profile.cover_photo = new_photo   
                     print('cover photo = ',new_photo,oldpath)
                     message = "Cover Photo updated successfully"
-                else:                                                   # if data does not contain profile or cover return failed
+                else:                                                  # if data does not contain profile or cover return failed
                     print('else case')
                     return Response({
                         'status': status.HTTP_400_BAD_REQUEST,
@@ -220,3 +223,90 @@ class AchievementManage(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Achievements.objects.filter(user=self.request.user).order_by('-id')
+    
+
+class FriendRequestViewSet(viewsets.ModelViewSet):
+    queryset = FriendRequest.objects.all()
+    serializer_class = FriendRequestSerializer
+    
+    def get_queryset(self):
+        return FriendRequest.objects.filter(to_user=self.request.user).select_related('to_user') 
+
+    @action(detail=True, methods=['get'])
+    def sent_request_list(self,*args, **kwargs):
+        sent_requests =  FriendRequest.objects.filter(from_user=self.request.user).select_related('from_user')
+        serializer = self.get_serializer(sent_requests)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+
+    def create(self, request, *args, **kwargs):
+        print(request.data,request.user,args,kwargs)
+        data = request.data
+        from_user = request.user
+        to_user = Users.objects.get(id=data['to_user'])
+
+        if from_user == to_user:
+            return Response({'message':"You can't send friend request to yourself"},status=status.HTTP_400_BAD_REQUEST)
+
+        if FriendRequest.objects.filter(from_user=from_user, to_user=to_user).exists():
+            return Response({'message':'Friend Request already sent..'},status=status.HTTP_400_BAD_REQUEST)
+        
+        friend_request = FriendRequest.objects.create(from_user=from_user, to_user=to_user)
+        serializer = self.get_serializer(friend_request)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+
+    @action(detail=True, methods=['post'])
+    def accept_request(self, request, pk=None):
+        print(pk,request.user,'unios')
+        friend_request = FriendRequest.objects.get(from_user=pk,to_user=request.user)
+        friend_request.accept()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    @action(detail=True, methods=['post'])
+    def reject_request(self, request, pk=None):
+        friend_request = FriendRequest.objects.get(from_user=pk,to_user=request.user)
+        print(friend_request)
+        friend_request.reject()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+        
+
+class FriendViewSet(viewsets.ModelViewSet):
+    serializer_class = FriendListSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        return user.friends.all().select_related('userprofile').prefetch_related('sport_set')
+
+
+class FollowViewSet(viewsets.ModelViewSet):
+    queryset = Follow.objects.all()
+    serializer_class = FollowSerializer
+
+    def create(self,request, *args, **kwargs):
+        data = request.data
+        print(data)
+        player = request.user
+        academy_id = data['academy']
+        academy = Users.objects.get(id=academy_id)
+
+        if Follow.objects.filter(player=player, academy=academy).exists():
+            return Response({'message':'Already following this academy'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        follow = Follow.objects.create(player=player,academy=academy)
+        serializer = FollowSerializer(follow)
+        return Response(serializer.data,status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=['post'])
+    def unfollow(self, request):
+        player = request.user
+        academy_id = request.data.get('academy_id', None)
+        if not academy_id:
+            return Response({'message':"academy id is required"},status=status.HTTP_400_BAD_REQUEST)
+        
+        follow = Follow.objects.filter(player=player,academy=academy_id).first()
+        if follow:
+            follow.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({'message':'You are not following this academy'},status=status.HTTP_400_BAD_REQUEST)
+    
+

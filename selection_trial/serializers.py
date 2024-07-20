@@ -16,7 +16,7 @@ class TrialSerializer(serializers.ModelSerializer):
     class Meta:
         model = Trial
         fields = [
-            'id', 'academy', 'sport', 'name', 'trial_date', 'trial_time', 'venue', 'deadline', 
+            'id', 'academy', 'sport', 'name', 'trial_date', 'trial_time', 'venue', 'deadline', 'is_active',
             'district', 'state', 'location','total_participant_limit', 'registration_fee', 'description', 'additionalRequirements',
             'is_participant_limit', 'is_registration_fee', 'image', 'additional_requirements' ,'academy_details','player_count',
         ]

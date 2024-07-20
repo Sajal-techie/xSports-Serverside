@@ -1,7 +1,7 @@
 from django.urls import path,include
 from rest_framework import routers
 router = routers.DefaultRouter()
-from . views import Signup,VerifyOtp,Login,Logout,ResendOtp,ForgetPassword,GoogleSignIn
+from . views import Signup,VerifyOtp,Login,Logout,ResendOtp,ForgetPassword,GoogleSignIn,SearchResult
 
 urlpatterns = [
     path('signup', Signup.as_view(), name='signup'),
@@ -11,4 +11,6 @@ urlpatterns = [
     path('logout',Logout.as_view(),name='logout'),
     path('resend_otp',ResendOtp.as_view(),name='resend_otp'),
     path('forget_pass',ForgetPassword.as_view(),name='forget_pass'), 
+    path('search', SearchResult.as_view(), name='search'),
+
 ] 
