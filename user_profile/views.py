@@ -18,28 +18,43 @@ from common.custom_permission_classes import IsPlayer,IsAcademy,IsUser,IsAdmin
 class ProfileData(views.APIView):
     permission_classes = [IsUser,IsAuthenticated]
     # to get all data of a user from different tables 
-    def get(self,request): 
+    def get(self,request,id=None): 
         try:
-            user = request.user
+            if id:
+                user = Users.objects.get(id=id)
+            else:
+                user = request.user
+            own_profile = True if user == request.user else False  # set a flag to identify user is viewing own profile or others profile
             cache_key = f"profile_{user.id}"
-            user_data = cache.get(cache_key)
+            user_data = cache.get(cache_key) 
             print(user_data,'cached user data')
             if not user_data:
                 profile = UserProfile.objects.get(user=user) if UserProfile.objects.filter(user=user).exists() else None
                 sports = Sport.objects.filter(user = user)
-                sport_data = []
-                for sport in sports:
-                    sport_data.append(SportSerializer(sport).data)
-                print(sport_data,'HAI')
+                sport_data = [SportSerializer(sport).data for sport in sports]
+                achievements = Achievements.objects.filter(user=user)
+                achievement_data = [AchievementSerializer(achievement).data for achievement in achievements]
+                user_academies = UserAcademy.objects.filter(user=user)
+                user_academy_data = [UserAcademySerializer(user_academy).data for user_academy in user_academies ]
+                print(sport_data,'HAI',achievement_data,'heelo',user_academy_data) 
                 user_data = {
                     'user' : CustomUsersSerializer(user).data,  # it will contain datas in Users model
                     'profile': UserProfileSerializer(profile).data,   # it will contain data from UserProfile model
                     'sport' : sport_data,   # it will contain data from Sport model
+                    'own_profile':own_profile,
+                    'achievements':achievement_data,
+                    'user_academies':user_academy_data
                 }
                 cache.set(cache_key,user_data,timeout=60*15) # adding data to cache
             return Response({
                 'status': status.HTTP_200_OK,
                 'user_details': user_data
+            })
+        except Users.DoesNotExist as e:
+            print(e,'user does not exist')
+            return Response({
+                'status': status.HTTP_404_NOT_FOUND,
+                'message':'User does not exist'
             })
         except Exception as e:
             print(e,'error in getting userdata')
@@ -215,6 +230,20 @@ class UserAcademyManage(viewsets.ModelViewSet):
     def get_queryset(self):
         return UserAcademy.objects.filter(user=self.request.user).select_related('academy').order_by('-id')
 
+    def perform_update(self, serializer):
+        cache_key = f"profile_{self.request.user.id}"
+        cache.delete(cache_key)
+        return super().perform_update(serializer)
+    
+    def perform_create(self, serializer):
+        cache_key = f"profile_{self.request.user.id}"
+        cache.delete(cache_key)
+        return super().perform_create(serializer)
+
+    def perform_destroy(self, instance):
+        cache_key = f"profile_{self.request.user.id}"
+        cache.delete(cache_key)
+        return super().perform_destroy(instance)
 
 class AchievementManage(viewsets.ModelViewSet):
     permission_classes = [IsUser,IsAuthenticated]
@@ -224,19 +253,29 @@ class AchievementManage(viewsets.ModelViewSet):
     def get_queryset(self):
         return Achievements.objects.filter(user=self.request.user).order_by('-id')
     
+    def perform_update(self, serializer):
+        cache_key = f"profile_{self.request.user.id}"
+        cache.delete(cache_key)
+        return super().perform_update(serializer)
+    
+    def perform_create(self, serializer):
+        cache_key = f"profile_{self.request.user.id}"
+        cache.delete(cache_key)
+        return super().perform_create(serializer)
+
+    def perform_destroy(self, instance):
+        cache_key = f"profile_{self.request.user.id}"
+        cache.delete(cache_key)
+        return super().perform_destroy(instance)
+        
+    
 
 class FriendRequestViewSet(viewsets.ModelViewSet):
     queryset = FriendRequest.objects.all()
     serializer_class = FriendRequestSerializer
     
     def get_queryset(self):
-        return FriendRequest.objects.filter(to_user=self.request.user).select_related('to_user') 
-
-    @action(detail=True, methods=['get'])
-    def sent_request_list(self,*args, **kwargs):
-        sent_requests =  FriendRequest.objects.filter(from_user=self.request.user).select_related('from_user')
-        serializer = self.get_serializer(sent_requests)
-        return Response(serializer.data,status=status.HTTP_200_OK)
+        return FriendRequest.objects.filter(to_user=self.request.user).exclude(status='accepted').select_related('to_user') 
 
     def create(self, request, *args, **kwargs):
         print(request.data,request.user,args,kwargs)
@@ -254,21 +293,37 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(friend_request)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
+    @action(detail=True, methods=['get'])
+    def sent_request_list(self,*args, **kwargs):
+        sent_requests =  FriendRequest.objects.filter(from_user=self.request.user).exclude(status='accepted').select_related('from_user')
+        print(sent_requests,self.request.user)
+        serializer = self.get_serializer(sent_requests,many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
-    def accept_request(self, request, pk=None):
-        print(pk,request.user,'unios')
-        friend_request = FriendRequest.objects.get(from_user=pk,to_user=request.user)
-        friend_request.accept()
+    def accept_request(self, request, id=None):
+        print(id,request.user,'unios')
+        
+        friend_request = FriendRequest.objects.get(from_user=id,to_user=request.user)
+        friend_request.accept() # making friends using model method
+        friend_request.delete() # deleting data from Friend Request Model 
         return Response(status=status.HTTP_204_NO_CONTENT)
     
     @action(detail=True, methods=['post'])
-    def reject_request(self, request, pk=None):
-        friend_request = FriendRequest.objects.get(from_user=pk,to_user=request.user)
+    def reject_request(self, request, id=None):
+        friend_request = FriendRequest.objects.get(from_user=id,to_user=request.user)
         print(friend_request)
         friend_request.reject()
         return Response(status=status.HTTP_204_NO_CONTENT)
         
+    @action(detail=True, methods=['post'])
+    def cancel_request(self, request, id=None):
+        to_user = Users.objects.get(id=id)
+        friend_request = FriendRequest.objects.get(from_user=request.user,to_user=to_user)
+        friend_request.delete()
+        print('freind request cancelled')
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class FriendViewSet(viewsets.ModelViewSet):
     serializer_class = FriendListSerializer
@@ -282,10 +337,15 @@ class FollowViewSet(viewsets.ModelViewSet):
     queryset = Follow.objects.all()
     serializer_class = FollowSerializer
 
+
+    def get_queryset(self):
+        print(self,self.request,self.request.user)
+        return Follow.objects.filter(player=self.request.user)
+
     def create(self,request, *args, **kwargs):
         data = request.data
-        print(data)
         player = request.user
+        print(data,player)
         academy_id = data['academy']
         academy = Users.objects.get(id=academy_id)
 
@@ -299,7 +359,8 @@ class FollowViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def unfollow(self, request):
         player = request.user
-        academy_id = request.data.get('academy_id', None)
+        academy_id = request.data.get('academy', None)
+        print(player,academy_id)
         if not academy_id:
             return Response({'message':"academy id is required"},status=status.HTTP_400_BAD_REQUEST)
         

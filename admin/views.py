@@ -8,10 +8,10 @@ from rest_framework.permissions import IsAuthenticated
 from users.serializers.user_serializer import CustomUsersSerializer,SportSerializer,Academyserializer,UserProfileSerializer
 from users.models import Users,Sport,UserProfile,Academy
 from .task import send_alert
-from common.custom_permission_classes import IsAdmin
+from common.custom_permission_classes import IsAdmin,IsPlayer
 
 class AcademyManage(APIView):
-    permission_classes = [IsAdmin,IsAuthenticated]
+    permission_classes = [ IsAuthenticated, IsAdmin | IsPlayer]
 
     def get(self, request):
         users = Users.objects.filter(is_academy=True).order_by('-id')

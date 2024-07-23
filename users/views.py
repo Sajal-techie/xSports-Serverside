@@ -5,10 +5,13 @@ from rest_framework.generics import GenericAPIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.validators import validate_email
 from django.http import JsonResponse
+from django.db.models import Q,Count
+from django.conf import settings
 from django.contrib.postgres.search import SearchQuery, SearchVector, SearchRank 
 from users.serializers.user_serializer import CustomUsersSerializer
 from users.serializers.google_serializer import GoogleSignInSerializer
 from .models import Users,Academy
+from user_profile.models import FriendRequest,Follow
 from .task import send_otp
 from selection_trial.models import Trial
 
@@ -283,17 +286,80 @@ class ForgetPassword(APIView):
 
 class SearchResult(APIView):
     def get(self,request):
+        current_user = request.user
         query = request.GET.get('q','')
         if query:
-            players = Users.objects.filter(username__icontains=query,is_academy=False).values('username')
-            academies = Users.objects.filter(username__icontains=query,is_academy=True).values('username')
-            trials = Trial.objects.filter(name__icontains=query).values('name')
+            users = Users.objects.filter(
+                Q(username__icontains=query) | Q(userprofile__bio__icontains=query),
+            ).select_related('userprofile').exclude(is_staff=True).annotate(
+                friends_count=Count('friends', distinct=True),followers_count=Count('followers', distinct=True),
+                is_friend=Count('friends', filter=Q(friends__id=current_user.id), distinct=True)
+                ).values('id', 'username', 'is_academy', 'userprofile__profile_photo', 'userprofile__bio','friends_count','followers_count','is_friend')
+            
+            trials = Trial.objects.filter(name__icontains=query).annotate(
+                registered_players_count=Count('trial', distinct=True)
+            ).values('id', 'name','image','sport','registered_players_count')
 
+            # posts = Post.objects.filter(title__icontains=query).values('id', 'title')
+
+            friend_requests = FriendRequest.objects.filter(
+                Q(from_user_id=current_user) | Q(to_user_id=current_user)
+            ).values('from_user', 'to_user', 'status') 
+
+            follows = Follow.objects.filter(player=current_user).values_list('academy',flat=True)
+
+            for i in friend_requests:
+                print(i)
+            base_url = request.build_absolute_uri(settings.MEDIA_URL)
+            print(base_url,'url')
             suggestions = []
-            suggestions.extend([{'name': player['username'], 'type': 'Player'} for player in players])
-            suggestions.extend([{'name': academy['username'], 'type': 'Academy'} for academy in academies])
-            # suggestions.extend([{'name': post['title'], 'type': 'Post'} for post in posts])
-            suggestions.extend([{'name': trial['name'], 'type': 'Trial'} for trial in trials])
+            for user in users:
+                friend_status = 'none'
 
+                print(user['id'],current_user.id)
+                if user['id'] == current_user.id:
+                    friend_status = 'self'
+                elif friend_requests.filter(from_user=current_user, to_user=user['id'], status='pending').exists():
+                    friend_status = 'request_sent'
+                elif friend_requests.filter(from_user=user['id'], to_user=current_user, status='pending').exists():
+                    friend_status = 'request_received'
+                elif friend_requests.filter(
+                    Q(from_user=current_user, to_user=user['id'], status='accepted') |
+                    Q(from_user=user['id'], to_user=current_user, status='accepted')
+                ).exists():
+                    friend_status = 'friends'
+                
+                follow_status = 'not_following'
+                if user['is_academy'] and user['id'] in follows:
+                    follow_status = 'following'
+
+                suggestions.append({
+                    'id': user['id'],
+                    'name': user['username'],
+                    'isAcademy': user['is_academy'],
+                    'photoUrl': base_url + user['userprofile__profile_photo'] if user['userprofile__profile_photo'] else '',
+                    'bio': user['userprofile__bio'],
+                    'type': 'Academy' if user['is_academy'] else 'Player',
+                    'count': user['friends_count'] if not user['is_academy'] else user['followers_count'],
+                    'friend_status': friend_status,
+                    'follow_status':follow_status
+                })
+
+            suggestions.extend([
+                {'id': trial['id'], 
+                 'name': trial['name'], 
+                 'photoUrl':base_url + trial['image'] if trial['image'] else '',
+                 'bio': trial['sport'],
+                 'type': 'Trial',
+                 'count': trial['registered_players_count']
+                 }
+                for trial in trials
+            ])
+            # suggestions.extend([
+            #     {'id': post['id'], 'name': post['title'], 'type': 'Post'}
+            #     for post in posts
+            # ])
+            suggestions.sort(key=lambda x: x['count'], reverse=True)
             return JsonResponse(suggestions, safe=False)
+
         return JsonResponse({'message': 'No query provided.'}, status=400)

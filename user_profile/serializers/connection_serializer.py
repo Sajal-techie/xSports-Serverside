@@ -12,7 +12,7 @@ class FriendListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'is_academy', 'is_verified', 'profile_photo', 'bio', 
+        fields = ['id', 'username', 'is_academy', 'profile_photo', 'bio', 
                 #   'sports'
                   ]
 
@@ -37,8 +37,8 @@ class FriendRequestSerializer(serializers.ModelSerializer):
     
 
 class FollowSerializer(serializers.ModelSerializer):
-    player = CustomUsersSerializer(read_only=True)
-    academy = CustomUsersSerializer()
+    player = FriendListSerializer(read_only=True)
+    academy = FriendListSerializer()
 
     class Meta:
         model = Follow
