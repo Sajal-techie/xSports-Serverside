@@ -37,14 +37,45 @@ class ProfileData(views.APIView):
                 user_academies = UserAcademy.objects.filter(user=user)
                 user_academy_data = [UserAcademySerializer(user_academy).data for user_academy in user_academies ]
                 print(sport_data,'HAI',achievement_data,'heelo',user_academy_data) 
+                
+                friend_status = None
+                if user.is_academy:
+                    followers = Follow.objects.filter(academy=user).count()
+                    print(followers)
+
+                if not own_profile:
+                    if user.is_academy:
+                        following = Follow.objects.filter(player=request.user,academy=user).first()
+                        if following:
+                            friend_status = 'following'
+                        else:
+                            friend_status = 'follow'
+                    else:
+                        friend_request = FriendRequest.objects.filter(from_user=user,to_user=request.user).first()
+                        if friend_request:
+                            friend_status = 'received'
+                        else:
+                            friend_request = FriendRequest.objects.filter(from_user=request.user,to_user=user).first()
+                            if friend_request:
+                                friend_status = 'sent'
+                            else:
+                                if user.friends.filter(id=request.user.id).exists():
+                                    friend_status = 'friends'
+                                else:
+                                    friend_status = 'none'
+
                 user_data = {
                     'user' : CustomUsersSerializer(user).data,  # it will contain datas in Users model
                     'profile': UserProfileSerializer(profile).data,   # it will contain data from UserProfile model
                     'sport' : sport_data,   # it will contain data from Sport model
                     'own_profile':own_profile,
                     'achievements':achievement_data,
-                    'user_academies':user_academy_data
+                    'user_academies':user_academy_data,
+                    'friend_status':friend_status ,
                 }
+                if user.is_academy:
+                    user_data['followers'] = followers  # add followers count with responce if user is academy  
+
                 cache.set(cache_key,user_data,timeout=60*15) # adding data to cache
             return Response({
                 'status': status.HTTP_200_OK,
@@ -291,6 +322,10 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
         
         friend_request = FriendRequest.objects.create(from_user=from_user, to_user=to_user)
         serializer = self.get_serializer(friend_request)
+        cache_key1 = f"profile_{from_user.id}"
+        cache_key2 = f"profile_{to_user.id}"
+        cache.delete(cache_key1)
+        cache.delete(cache_key2)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['get'])
@@ -307,14 +342,22 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
         friend_request = FriendRequest.objects.get(from_user=id,to_user=request.user)
         friend_request.accept() # making friends using model method
         friend_request.delete() # deleting data from Friend Request Model 
+        cache_key1 = f"profile_{id}"
+        cache_key2 = f"profile_{request.user.id}"
+        cache.delete(cache_key1)
+        cache.delete(cache_key2)
         return Response(status=status.HTTP_204_NO_CONTENT)
     
-    @action(detail=True, methods=['post'])
-    def reject_request(self, request, id=None):
-        friend_request = FriendRequest.objects.get(from_user=id,to_user=request.user)
-        print(friend_request)
-        friend_request.reject()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    # @action(detail=True, methods=['post'])
+    # def reject_request(self, request, id=None):
+    #     friend_request = FriendRequest.objects.get(from_user=id,to_user=request.user)
+    #     print(friend_request)
+    #     friend_request.reject()
+    #     cache_key1 = f"profile_{id}"
+    #     cache_key2 = f"profile_{request.user.id}"
+    #     cache.delete(cache_key1)
+    #     cache.delete(cache_key2)
+    #     return Response(status=status.HTTP_204_NO_CONTENT)
         
     @action(detail=True, methods=['post'])
     def cancel_request(self, request, id=None):
@@ -322,16 +365,45 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
         friend_request = FriendRequest.objects.get(from_user=request.user,to_user=to_user)
         friend_request.delete()
         print('freind request cancelled')
+        cache_key1 = f"profile_{id}"
+        cache_key2 = f"profile_{request.user.id}"
+        cache.delete(cache_key1)
+        cache.delete(cache_key2)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class FriendViewSet(viewsets.ModelViewSet):
     serializer_class = FriendListSerializer
+    lookup_field = 'id'
 
     def get_queryset(self):
         user = self.request.user
         return user.friends.all().select_related('userprofile').prefetch_related('sport_set')
 
+    def destroy(self, request,id, *args, **kwargs):
+        user = self.request.user
+
+        try:
+            friend = Users.objects.get(id=id)
+            
+            user.friends.remove(friend)
+            friend.friends.remove(user)
+            
+            return Response({
+                'status': status.HTTP_204_NO_CONTENT,
+                'message': 'Friend removed successfully'
+            })
+        except Users.DoesNotExist:
+            return Response({
+                'status': status.HTTP_404_NOT_FOUND,
+                'message': 'Friend not found'
+            })
+        except Exception as e:
+            return Response({
+                'status': status.HTTP_400_BAD_REQUEST,
+                'message': str(e)
+            })
+    
 
 class FollowViewSet(viewsets.ModelViewSet):
     queryset = Follow.objects.all()
@@ -354,6 +426,10 @@ class FollowViewSet(viewsets.ModelViewSet):
         
         follow = Follow.objects.create(player=player,academy=academy)
         serializer = FollowSerializer(follow)
+        cache_key1 = f"profile_{player.id}"
+        cache_key2 = f"profile_{academy.id}"
+        cache.delete(cache_key1)
+        cache.delete(cache_key2)
         return Response(serializer.data,status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['post'])
@@ -367,6 +443,10 @@ class FollowViewSet(viewsets.ModelViewSet):
         follow = Follow.objects.filter(player=player,academy=academy_id).first()
         if follow:
             follow.delete()
+            cache_key1 = f"profile_{player.id}"
+            cache_key2 = f"profile_{academy_id}"
+            cache.delete(cache_key1)
+            cache.delete(cache_key2)
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response({'message':'You are not following this academy'},status=status.HTTP_400_BAD_REQUEST)
     

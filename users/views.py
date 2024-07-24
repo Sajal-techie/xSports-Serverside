@@ -323,10 +323,8 @@ class SearchResult(APIView):
                     friend_status = 'request_sent'
                 elif friend_requests.filter(from_user=user['id'], to_user=current_user, status='pending').exists():
                     friend_status = 'request_received'
-                elif friend_requests.filter(
-                    Q(from_user=current_user, to_user=user['id'], status='accepted') |
-                    Q(from_user=user['id'], to_user=current_user, status='accepted')
-                ).exists():
+                elif current_user.friends.filter(id=user['id']).exists():
+                    print(current_user.friends.filter(id=user['id']),'freindsdsdf')
                     friend_status = 'friends'
                 
                 follow_status = 'not_following'

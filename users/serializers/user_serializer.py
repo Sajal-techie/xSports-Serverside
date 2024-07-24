@@ -23,7 +23,7 @@ class CustomUsersSerializer(ModelSerializer):
         model = Users  
         fields = [
             'username', 'email', 'phone', 'dob', 'is_academy',
-             'is_verified', 'password','sport','district','state','license','id' 
+             'is_verified', 'password','sport','district','state','license','id' ,'friends'
         ]
         extra_kwargs = {
             'password' : {'write_only' : True} 

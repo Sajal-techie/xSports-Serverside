@@ -10,9 +10,9 @@ sent_request_list = FriendRequestViewSet.as_view({
 friend_request_accept = FriendRequestViewSet.as_view({
     'post':'accept_request'
 })
-friend_request_reject = FriendRequestViewSet.as_view({
-    'post':'reject_request'
-})
+# friend_request_reject = FriendRequestViewSet.as_view({
+#     'post':'reject_request'
+# })
 
 cancel_request = FriendRequestViewSet.as_view({
     'post': 'cancel_request'
@@ -36,9 +36,10 @@ urlpatterns = [
     path('sent_request_list',sent_request_list, name='friend_request_list'),
     # path('friend_request/<int:pk>', FriendRequestViewSet.as_view({'get':'retrieve','put':'update','delete':'destroy'}), name='friend_request'),
     path('friend_request_accept/<int:id>', friend_request_accept, name='friend_request_accept'),
-    path('friend_request_reject/<int:id>', friend_request_reject, name='friend_request_reject'),
+    # path('friend_request_reject/<int:id>', friend_request_reject, name='friend_request_reject'),
     path('cancel_request/<int:id>',cancel_request, name='cancel_request'),
     path('friends', FriendViewSet.as_view({'get':'list'}), name='friends'),
+    path('friends/<int:id>', FriendViewSet.as_view({'delete':'destroy'}), name='friends'),
     path('follow', FollowViewSet.as_view({ 'get': 'list','post':'create'}), name='follow'),
     # path('follow/<int:pk>',FollowViewSet.as_view({'get':'retrieve','put':'update','delete':'destroy'}), name='follows'),
     path('unfollow', unfollow, name='unfollow'),

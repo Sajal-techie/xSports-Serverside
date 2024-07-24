@@ -35,11 +35,9 @@ class Achievements(DataBaseModels):
 class FriendRequest(DataBaseModels):
     PENDING = 'pending'
     ACCEPTED = 'accepted'
-    REJECTED = 'rejected'
     STATUS_CHOICES = [
         (PENDING, 'Pending'),
         (ACCEPTED, 'Accepted'),
-        (REJECTED, 'Rejected')
     ]
 
     from_user = models.ForeignKey(Users, related_name='sent_friend_requests', on_delete=models.CASCADE)
@@ -58,9 +56,7 @@ class FriendRequest(DataBaseModels):
         self.from_user.friends.add(self.to_user)
         self.to_user.friends.add(self.from_user)
     
-    def reject(self):
-        self.status = self.REJECTED
-        self.save()
+
     
 
 
