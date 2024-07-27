@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'users',
     'user_profile',
     'selection_trial',
+    'post',
 
 ]
 AUTH_USER_MODEL = 'users.Users'

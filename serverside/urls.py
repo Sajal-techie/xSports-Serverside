@@ -14,6 +14,7 @@ urlpatterns = [
     path('', include('admin.urls')), 
     path('', include('user_profile.urls')), 
     path('', include('selection_trial.urls')), 
+    path('', include('post.urls')), 
 
 ] 
    

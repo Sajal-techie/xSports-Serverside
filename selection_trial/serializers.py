@@ -13,6 +13,7 @@ class TrialSerializer(serializers.ModelSerializer):
     additional_requirements = TrialRequirementSerializer(many=True, read_only=True) # to pass additional requirement to front end
     academy_details = AcademyDetailSerialiezer(source='academy',read_only=True,required=False)
     player_count = serializers.IntegerField(read_only=True,required=False)
+    
     class Meta:
         model = Trial
         fields = [
@@ -26,7 +27,7 @@ class TrialSerializer(serializers.ModelSerializer):
         requirement_data = validated_data.pop('additionalRequirements',[])
         user = self.context['request'].user
         print(user)
-        trial = Trial.objects.create(academy=user,**validated_data)
+        trial = Trial.objects.create(academy=user,is_active=True, **validated_data)
         print(requirement_data,'reqdata',validated_data)
         for requirement in requirement_data:
             if requirement:

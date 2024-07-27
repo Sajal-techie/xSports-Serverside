@@ -296,9 +296,14 @@ class SearchResult(APIView):
                 is_friend=Count('friends', filter=Q(friends__id=current_user.id), distinct=True)
                 ).values('id', 'username', 'is_academy', 'userprofile__profile_photo', 'userprofile__bio','friends_count','followers_count','is_friend')
             
-            trials = Trial.objects.filter(name__icontains=query).annotate(
-                registered_players_count=Count('trial', distinct=True)
-            ).values('id', 'name','image','sport','registered_players_count')
+            if current_user.is_academy:
+                trials = Trial.objects.filter(name__icontains=query,academy=current_user).annotate(
+                    registered_players_count=Count('trial', distinct=True)
+                ).values('id', 'name','image','sport','registered_players_count')
+            else:
+                trials = Trial.objects.filter(name__icontains=query).annotate(
+                    registered_players_count=Count('trial', distinct=True)
+                ).values('id', 'name','image','sport','registered_players_count')
 
             # posts = Post.objects.filter(title__icontains=query).values('id', 'title')
 
@@ -307,6 +312,7 @@ class SearchResult(APIView):
             ).values('from_user', 'to_user', 'status') 
 
             follows = Follow.objects.filter(player=current_user).values_list('academy',flat=True)
+            followers = Follow.objects.filter(academy=current_user).values_list('player',flat=True)
 
             for i in friend_requests:
                 print(i)
@@ -328,8 +334,13 @@ class SearchResult(APIView):
                     friend_status = 'friends'
                 
                 follow_status = 'not_following'
-                if user['is_academy'] and user['id'] in follows:
-                    follow_status = 'following'
+                print(follows,follow_status,followers,'followin ers',user['id'],user['username']) 
+                if user['is_academy'] and user['id'] in follows: # if the user is player and player is following the resulted academy 
+                    follow_status = 'following' 
+
+                if not user['is_academy'] and user['id'] in followers: # if the user is academy and academy is followed by the player
+                    follow_status = 'follower'
+
 
                 suggestions.append({
                     'id': user['id'],

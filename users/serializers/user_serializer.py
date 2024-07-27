@@ -16,8 +16,8 @@ class CustomUsersSerializer(ModelSerializer):
     district = serializers.CharField(max_length=255,required=False)
     state = serializers.CharField(max_length=255,required=False)
     license = serializers.FileField(required=False) 
-    # sports = SportSerializer(read_only =True)
-    # user_profile= UserProfileSerializer(read_only=True)
+    friends = serializers.PrimaryKeyRelatedField(many=True, queryset=Users.objects.all(), required=False)
+
 
     class Meta: 
         model = Users  

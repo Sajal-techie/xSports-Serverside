@@ -31,16 +31,17 @@ class TrialViewSet(viewsets.ModelViewSet):
             permission_classes = [IsAcademy]
         return [permission() for permission in permission_classes]
 
-    def get_queryset(self):
+    def get_queryset(self,*args, **kwargs):
         print('=------------------------------------------------------------')
 
         user = self.request.user
         queryset = Trial.objects.all().annotate(player_count=Count('trial')).order_by('trial_date')
-        print(queryset)
+        print(queryset,self,self.request,self.request.data,args,kwargs,'hello') 
         search_term = self.request.query_params.get('search', None)
         sport = self.request.query_params.get('sport', None)
         state = self.request.query_params.get('state', None)
         payment = self.request.query_params.get('payment', None)
+        academy_id = self.request.query_params.get('id', None)
 
         if search_term:
             queryset = queryset.filter(Q(name__icontains=search_term) |
@@ -65,27 +66,35 @@ class TrialViewSet(viewsets.ModelViewSet):
             self.pagination_class = StandardResultsSetPagination
             return queryset
 
+        if academy_id:
+            queryset = queryset.filter(academy=academy_id,is_active=True)
+            return queryset
+        
         if user.is_academy:
             # if requested by academy then only show only the trial created by them 
             queryset = queryset.filter(academy=user,is_active=True)
             print(queryset,'if academy')
             return queryset
-            
+
+
         # if requested by players then show all trials with trialdate less than today's date
         today = date.today()
         self.pagination_class = StandardResultsSetPagination
         queryset = queryset.filter(trial_date__gte=today,is_active=True).select_related('academy')
         return queryset
 
+    # def retrieve(self, request, *args, **kwargs):
+    #     print(args,kwargs,'retirve view')
+    #     return super().retrieve(request, *args, **kwargs) 
 
     def retrieve(self, request,id, *args, **kwargs):
         print(request.data,id, args,kwargs,'==================retrive===========')
         try:
-            trial = Trial.objects.get(id=id)
+            trial = Trial.objects.filter(id=id).annotate(player_count=Count('trial')).first()
         except Exception as e:
             return response.Response(data="Not found",status=status.HTTP_404_NOT_FOUND)
         
-        serializer = TrialSerializer(trial)
+        serializer = self.get_serializer(trial)
         return response.Response(serializer.data, status=status.HTTP_200_OK)
     
     # make trial is_active to false if trial cancelled by academy 
@@ -208,7 +217,10 @@ class PlayersInTrialViewSet(viewsets.ModelViewSet):
                         {player.trial.name}'s conducted by {player.trial.academy.username} academy , 
                         Thank you for you participation . """
         send_status_mail.delay(email=player.email,trial_name=player.trial.name,message=message)
-        return super().partial_update(request, *args, **kwargs)
+        print('oput of update')
+        player.status = request.data.get('status','registered')
+        player.save()
+        return response.Response(status=status.HTTP_204_NO_CONTENT)
     
     # to update payment satus and confirm registration
     def update(self, request,id, *args, **kwargs):

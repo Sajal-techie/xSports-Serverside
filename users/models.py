@@ -40,7 +40,7 @@ class Users(AbstractUser):
     is_active = models.BooleanField(default=True)
     is_verified = models.BooleanField(default=False) 
     auth_provider = models.CharField(max_length=50, default='email')
-    friends = models.ManyToManyField('self', symmetrical=True, blank=True, null=True)
+    friends = models.ManyToManyField('self', symmetrical=True)
     created_at = models.DateTimeField(auto_now_add=True,null=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
     

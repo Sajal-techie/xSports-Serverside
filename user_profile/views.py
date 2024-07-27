@@ -27,7 +27,43 @@ class ProfileData(views.APIView):
             own_profile = True if user == request.user else False  # set a flag to identify user is viewing own profile or others profile
             cache_key = f"profile_{user.id}"
             user_data = cache.get(cache_key) 
-            print(user_data,'cached user data')
+            print(user_data,'cached user data',own_profile)
+
+            friend_status = None
+            if user.is_academy:
+                followers = Follow.objects.filter(academy=user).count()
+                print(followers,'followers')
+
+            if not own_profile:
+                if user.is_academy:
+                    print('if user is acadey')
+                    following = Follow.objects.filter(player=request.user,academy=user).first()
+                    if following:
+                        friend_status = 'following'
+                    else:
+                        friend_status = 'follow'
+                elif request.user.is_academy:
+                    print('if requested user is academy')
+                    following = Follow.objects.filter(player=user,academy=request.user).first()
+                    if following:
+                        friend_status = 'follower'
+                    else:
+                        friend_status = 'notfollower'
+                else:
+                    friend_request = FriendRequest.objects.filter(from_user=user,to_user=request.user).first()
+                    if friend_request:
+                        friend_status = 'received'
+                    else:
+                        friend_request = FriendRequest.objects.filter(from_user=request.user,to_user=user).first()
+                        if friend_request:
+                            friend_status = 'sent'
+                        else:
+                            if user.friends.filter(id=request.user.id).exists():
+                                friend_status = 'friends'
+                            else:
+                                friend_status = 'none'
+
+            #  if there is no cached data fetch new datas
             if not user_data:
                 profile = UserProfile.objects.get(user=user) if UserProfile.objects.filter(user=user).exists() else None
                 sports = Sport.objects.filter(user = user)
@@ -38,31 +74,6 @@ class ProfileData(views.APIView):
                 user_academy_data = [UserAcademySerializer(user_academy).data for user_academy in user_academies ]
                 print(sport_data,'HAI',achievement_data,'heelo',user_academy_data) 
                 
-                friend_status = None
-                if user.is_academy:
-                    followers = Follow.objects.filter(academy=user).count()
-                    print(followers)
-
-                if not own_profile:
-                    if user.is_academy:
-                        following = Follow.objects.filter(player=request.user,academy=user).first()
-                        if following:
-                            friend_status = 'following'
-                        else:
-                            friend_status = 'follow'
-                    else:
-                        friend_request = FriendRequest.objects.filter(from_user=user,to_user=request.user).first()
-                        if friend_request:
-                            friend_status = 'received'
-                        else:
-                            friend_request = FriendRequest.objects.filter(from_user=request.user,to_user=user).first()
-                            if friend_request:
-                                friend_status = 'sent'
-                            else:
-                                if user.friends.filter(id=request.user.id).exists():
-                                    friend_status = 'friends'
-                                else:
-                                    friend_status = 'none'
 
                 user_data = {
                     'user' : CustomUsersSerializer(user).data,  # it will contain datas in Users model
@@ -71,12 +82,15 @@ class ProfileData(views.APIView):
                     'own_profile':own_profile,
                     'achievements':achievement_data,
                     'user_academies':user_academy_data,
-                    'friend_status':friend_status ,
                 }
-                if user.is_academy:
-                    user_data['followers'] = followers  # add followers count with responce if user is academy  
 
                 cache.set(cache_key,user_data,timeout=60*15) # adding data to cache
+            
+            user_data['own_profile'] = own_profile
+            user_data['friend_status'] = friend_status
+            if user.is_academy:
+                user_data['followers'] = followers  # add followers count with responce if user is academy  
+                
             return Response({
                 'status': status.HTTP_200_OK,
                 'user_details': user_data
