@@ -11,12 +11,22 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         profile_id = self.request.GET.get('id',None)
-        print(self, self.request.GET,profile_id)
+        print(self, self.request.GET,profile_id,'getqeuryset')
         if profile_id and profile_id != 'undefined' and profile_id != 'null':
             print(Post.objects.filter(user=profile_id))
             return Post.objects.filter(user=profile_id).select_related('user__userprofile').prefetch_related('likes').order_by('-id')
         
         return Post.objects.filter(user=self.request.user).select_related('user__userprofile').prefetch_related('likes').order_by('-id')
+
+    def retrieve(self, request,id, *args, **kwargs):
+        print(args,kwargs,'in retireve',id)
+        if Post.objects.filter(id=id).exists():
+            post = Post.objects.filter(id=id).select_related('user__userprofile').prefetch_related('likes').first()
+        else:
+            return response.Response(data="post not found", status=status.HTTP_404_NOT_FOUND) 
+        
+        serializer = self.get_serializer(post)
+        return response.Response(serializer.data,status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['POST'])
     def like(self, request, id=None):
@@ -62,7 +72,7 @@ class PostViewSet(viewsets.ModelViewSet):
         
         except Exception as e:
             print(e,'error in comment')
-            return response.Response(data=f'Some error{str(e)}',status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return response.Response(data=f'{str(e)}',status=status.HTTP_404_NOT_FOUND)
 
 
 class CommentViewSet(viewsets.ModelViewSet):

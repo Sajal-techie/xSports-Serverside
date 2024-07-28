@@ -6,10 +6,13 @@ class CommentSerializer(serializers.ModelSerializer):
     replies = serializers.SerializerMethodField()
     user = serializers.ReadOnlyField(source='user.username')
     profile_photo = serializers.ImageField(source='user.userprofile.profile_photo',read_only=True)
+    user_id = serializers.ReadOnlyField(source='user.id')
+    is_academy = serializers.ReadOnlyField(source='user.is_academy')
 
     class Meta:
         model = Comment
-        fields = ['id', 'user', 'created_at', 'replies', 'content', 'parent','profile_photo'] 
+        fields = ['id', 'user', 'created_at', 'replies', 'content', 'parent', 
+                  'profile_photo', 'user_id', 'is_academy' ] 
 
     def get_replies(self, obj):
         if obj.replies.exists():
@@ -24,12 +27,15 @@ class PostSerializer(serializers.ModelSerializer):
     comments = serializers.SerializerMethodField()
     likes_count = serializers.SerializerMethodField()
     is_liked_by_current_user = serializers.SerializerMethodField()
+    is_own_post = serializers.SerializerMethodField()
+    is_academy = serializers.ReadOnlyField(source='user.is_academy')
+    user_id = serializers.ReadOnlyField(source='user.id')
 
     class Meta:
         model = Post
-        fields = ['id','user','image','video', 'content','created_at', 'bio',
-                  'updated_at','comments', 'likes_count','profile_photo', 'is_liked_by_current_user']
-     
+        fields = ['id','user','image','video', 'content','created_at', 'bio', 'is_own_post', 'is_academy',
+                  'updated_at','comments', 'likes_count','profile_photo', 'is_liked_by_current_user', 'user_id']
+    
     def create(self, validated_data):
         print(self.context['request'].user,validated_data)
         return Post.objects.create(user=self.context['request'].user, **validated_data) 
@@ -45,7 +51,11 @@ class PostSerializer(serializers.ModelSerializer):
     def get_comments(self, obj):
         print(obj,'in comentmehtod field')
         return CommentSerializer(obj.comments.filter(parent=None), many=True).data #filtering comments using post(reverse relation)
-
+    
+    def get_is_own_post(self,obj):
+        user = self.context['request'].user
+        print(obj.user,user)
+        return obj.user == user
 
 class LikeSerializer(serializers.ModelSerializer):
     class Meta:

@@ -11,7 +11,7 @@ add_comment = PostViewSet.as_view({
 
 urlpatterns = [
     path("post", PostViewSet.as_view({'get':'list','post':'create'}), name="post"),
-    path("post/<int:id>", PostViewSet.as_view({'get':'retrieve','put':'update','delete':'destroy'}), name="posts"),
+    path("post/<int:id>", PostViewSet.as_view({'get':'retrieve','put':'update','delete':'destroy',  'patch': 'partial_update'}), name="posts"),
     path("like/<int:id>", handle_like, name="like"),
     path("add_comment/<int:id>", add_comment, name="add_comment"),
 
