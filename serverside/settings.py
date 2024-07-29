@@ -14,11 +14,14 @@ ALLOWED_HOSTS = []
 
 
 INSTALLED_APPS = [
+    'daphne',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+
     'django.contrib.staticfiles', 
 
     'rest_framework',
@@ -26,12 +29,14 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_celery_results',
+    'channels',
 
     # custom apps
     'users',
     'user_profile',
     'selection_trial',
     'post',
+    'real_time',
 
 ]
 AUTH_USER_MODEL = 'users.Users'
@@ -66,8 +71,6 @@ TEMPLATES = [
         },
     },
 ]
-
-WSGI_APPLICATION = 'serverside.wsgi.application'
 
 
 # Database
@@ -121,6 +124,20 @@ MEDIA_ROOT = os.path.join(BASE_DIR / "media")
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+WSGI_APPLICATION = 'serverside.wsgi.application'
+ASGI_APPLICATION = 'serverside.asgi.application'
+
+CHANNEL_LAYERS = {
+    "default":{
+        "BACKEND":"channels_redis.core.RedisChannelLayer",
+        "CONFIG":{
+            'hosts':[("127.0.0.1",6379)]
+        }
+    }
+}
+
 
 # authenticatoion classes opt
 REST_FRAMEWORK = {

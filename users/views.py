@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from django.db.models import Q,Count
 from django.conf import settings
 from django.contrib.postgres.search import SearchQuery, SearchVector, SearchRank 
-from users.serializers.user_serializer import CustomUsersSerializer
+from users.serializers.user_serializer import CustomUsersSerializer,UserProfileSerializer
 from users.serializers.google_serializer import GoogleSignInSerializer
 from .models import Users,Academy
 from user_profile.models import FriendRequest,Follow
@@ -191,13 +191,16 @@ class Login(APIView):
                 })
 
         role = 'admin' if is_staff and user.is_staff else 'academy' if is_academy else 'player'
-
+        profile_photo = UserProfileSerializer(user.userprofile).data.get('profile_photo',None)
+        print(profile_photo)
         return Response({
             'status': status.HTTP_200_OK,
-           'message': 'Login Successful',
-           'user':user.username,
-           'role':role,
-           'dob':user.dob
+            'message': 'Login Successful',
+            'user':user.username,
+            'role':role,
+            'dob':user.dob,
+            'user_id': user.id,
+            'profile_photo':profile_photo,
         })
     
 

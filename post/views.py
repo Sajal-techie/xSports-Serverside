@@ -75,29 +75,29 @@ class PostViewSet(viewsets.ModelViewSet):
             return response.Response(data=f'{str(e)}',status=status.HTTP_404_NOT_FOUND)
 
 
-class CommentViewSet(viewsets.ModelViewSet):
-    serializer_class = CommentSerializer
+# class CommentViewSet(viewsets.ModelViewSet):
+#     serializer_class = CommentSerializer
 
-    def get_queryset(self):
-        print(self.request.user, ' in coment get query set')
-        return super().get_queryset()
+#     def get_queryset(self):
+#         print(self.request.user, ' in coment get query set')
+#         return super().get_queryset()
 
-    def perform_create(self, serializer):
-        print(self.request.user, serializer, 'in perfomr create')
-        return super().perform_create(serializer)
+#     def perform_create(self, serializer):
+#         print(self.request.user, serializer, 'in perfomr create')
+#         return super().perform_create(serializer)
     
 
-class LikeViewSet(viewsets.ModelViewSet):
-    serializer_class = LikeSerializer
+# class LikeViewSet(viewsets.ModelViewSet):
+#     serializer_class = LikeSerializer
 
-    def get_queryset(self):
-        print(self.request.user)
-        return super().get_queryset()
+#     def get_queryset(self):
+#         print(self.request.user)
+#         return super().get_queryset()
 
-    def perform_create(self, serializer):
-        print(self.request.user, serializer, 'perfomr create')
-        return super().perform_create(serializer)
+#     def perform_create(self, serializer):
+#         print(self.request.user, serializer, 'perfomr create')
+#         return super().perform_create(serializer)
     
-    def destroy(self, request, *args, **kwargs):
-        print(request.user, args, kwargs ,' delete like')
-        return super().destroy(request, *args, **kwargs)
+#     def destroy(self, request, *args, **kwargs):
+#         print(request.user, args, kwargs ,' delete like')
+#         return super().destroy(request, *args, **kwargs)

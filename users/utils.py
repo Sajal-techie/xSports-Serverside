@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate
 from django.conf import settings
 from rest_framework.exceptions import AuthenticationFailed,PermissionDenied
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from users.serializers.user_serializer import UserProfileSerializer
 
 class Google():
     @staticmethod 
@@ -22,6 +23,8 @@ def login_social_user(email,password):
     user = authenticate(email=email,password=password)
     print(user, 'login with user')
     token_serializer = TokenObtainPairSerializer(data={'email':email,'password':password})
+    profile_photo = UserProfileSerializer(user.userprofile).data.get('profile_photo',None)
+    
     try:
         if token_serializer.is_valid():
             print('insode toekn')
@@ -32,8 +35,10 @@ def login_social_user(email,password):
                 'username':user.username,
                 'access':str(access),
                 'refresh':str(refresh),
-                'dob':user.dob
-            }
+                'dob':user.dob,
+                'user_id':user.id,
+                'profile_photo':profile_photo
+            } 
     except Exception as e:
         print(e)
         raise AuthenticationFailed(
