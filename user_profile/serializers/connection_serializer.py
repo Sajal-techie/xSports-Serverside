@@ -17,14 +17,14 @@ class FriendListSerializer(serializers.ModelSerializer):
                   ]
 
     def get_profile_photo(self, obj):
-        print(obj)
         if hasattr(obj, 'userprofile') and obj.userprofile.profile_photo:
             return obj.userprofile.profile_photo.url
         return None
 
     def get_bio(self, obj):
-        if hasattr(obj, 'bio') and obj.userprofile.bio:
+        if hasattr(obj, 'userprofile') and obj.userprofile.bio:
             return obj.userprofile.bio
+        return None
 
 
 class FriendRequestSerializer(serializers.ModelSerializer):

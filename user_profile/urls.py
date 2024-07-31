@@ -10,9 +10,6 @@ sent_request_list = FriendRequestViewSet.as_view({
 friend_request_accept = FriendRequestViewSet.as_view({
     'post':'accept_request'
 })
-# friend_request_reject = FriendRequestViewSet.as_view({
-#     'post':'reject_request'
-# })
 
 cancel_request = FriendRequestViewSet.as_view({
     'post': 'cancel_request'

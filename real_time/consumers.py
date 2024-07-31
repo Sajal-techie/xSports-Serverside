@@ -2,7 +2,8 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.utils import timezone
-from .models import Chat,Users
+from django.conf import settings
+from .models import Chat,Users, Notification
 from .serializers import ChatSerializer
 
 class PersonalChatConsumer(AsyncWebsocketConsumer):
@@ -40,9 +41,7 @@ class PersonalChatConsumer(AsyncWebsocketConsumer):
 
         if sender and receiver:
             chat = await self.save_message(sender,receiver, message)
-        # saved_messsage = await self.save_message(sender, receiver, message)
-        # serializer = ChatSerializer(saved_messsage).data # serialize the data (to get related fields also)
-        # serializer_data = serializer.data
+
             serialized_data = await self.serialize_chat(chat)
             print(serialized_data,chat,'chat message, sereializer')
 
@@ -53,6 +52,24 @@ class PersonalChatConsumer(AsyncWebsocketConsumer):
                     'message_data': serialized_data
                 }
             )
+            link = '/chat/'+self.room_name
+            text =  f"New message from {sender.username}"
+            notification_type = 'new_message'
+
+            await self.channel_layer.group_send(
+                f"notification_{receiver_id}",
+                {
+                    'type': 'send_notification',
+                    'data':{
+                        'type': notification_type,
+                        'sender': sender.username,
+                        'message': message,
+                        'link': link,
+                        'text': text
+                    }
+                }
+            )
+            await create_notification(sender=sender, receiver=receiver, link=link, text=text, notification_type=notification_type )
         else:
             print(f"Error: Sender {sender_id} or Receiver {receiver_id} not found")
     
@@ -78,3 +95,50 @@ class PersonalChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def serialize_chat(self,chat):
         return ChatSerializer(chat).data
+
+
+class NotificationConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user_id = self.scope['url_route']['kwargs']['user_id']
+        self.notification_group_name = f'notification_{self.user_id}'
+        print(self.user_id, 'current user', self.notification_group_name)
+        await self.channel_layer.group_add(
+            self.notification_group_name,
+            self.channel_name
+        )
+        await self.accept()
+    
+    async def disconnect(self, code):
+        await self.channel_layer.group_discard(
+            self.notification_group_name,
+            self.channel_name
+        )
+
+    # async def receive(self, text_data=None, bytes_data=None):
+    #     data = json.loads(text_data)
+    #     print(data)
+    #     message = data['message']
+
+    #     await self.channel_layer.group_send(
+    #         f"notificaton_{self.user_id}",
+    #         {
+    #             'type': 'send_notification',
+    #             'message': message
+    #         }
+    #     )
+
+    async def send_notification(self, event):
+        print(event, 'event')
+        await self.send(text_data=json.dumps(event['data']))
+
+
+@database_sync_to_async
+def create_notification(sender, receiver, notification_type, text, link = None):
+    return Notification.objects.create(
+        sender=sender,
+        receiver=receiver,
+        notification_type=notification_type,
+        text=text,
+        link=link,
+        seen=False
+    )

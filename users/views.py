@@ -14,6 +14,7 @@ from .models import Users,Academy
 from user_profile.models import FriendRequest,Follow
 from .task import send_otp
 from selection_trial.models import Trial
+from real_time.models import Notification
 
 class Signup(APIView):
     # parser_classes = (MultiPartParser,)
@@ -193,6 +194,8 @@ class Login(APIView):
         role = 'admin' if is_staff and user.is_staff else 'academy' if is_academy else 'player'
         profile_photo = UserProfileSerializer(user.userprofile).data.get('profile_photo',None)
         print(profile_photo)
+        notification_count = Notification.objects.filter(receiver=user, seen=False).count()
+
         return Response({
             'status': status.HTTP_200_OK,
             'message': 'Login Successful',
@@ -201,6 +204,7 @@ class Login(APIView):
             'dob':user.dob,
             'user_id': user.id,
             'profile_photo':profile_photo,
+            'notification_count': notification_count
         })
     
 

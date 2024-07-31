@@ -6,6 +6,7 @@ from django.conf import settings
 from rest_framework.exceptions import AuthenticationFailed,PermissionDenied
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from users.serializers.user_serializer import UserProfileSerializer
+from real_time.models import Notification
 
 class Google():
     @staticmethod 
@@ -24,7 +25,7 @@ def login_social_user(email,password):
     print(user, 'login with user')
     token_serializer = TokenObtainPairSerializer(data={'email':email,'password':password})
     profile_photo = UserProfileSerializer(user.userprofile).data.get('profile_photo',None)
-    
+    notification_count = Notification.objects.filter(receiver=user, seen=False).count()
     try:
         if token_serializer.is_valid():
             print('insode toekn')
@@ -37,7 +38,8 @@ def login_social_user(email,password):
                 'refresh':str(refresh),
                 'dob':user.dob,
                 'user_id':user.id,
-                'profile_photo':profile_photo
+                'profile_photo':profile_photo,
+                'notification_count':notification_count
             } 
     except Exception as e:
         print(e)

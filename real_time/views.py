@@ -1,21 +1,17 @@
-from rest_framework import generics,views,response,status
+from rest_framework import generics,views,response,status,viewsets
 from django.db.models import Q
-from .models import Chat,Users
-from .serializers import ChatSerializer,ChatListUserSerializer
+from rest_framework.decorators import action
+from .models import Chat, Users, Notification
+from .serializers import ChatSerializer,ChatListUserSerializer, NotificationSerializer
 
 
 class ChatView(generics.ListCreateAPIView):
     serializer_class = ChatSerializer
     queryset = Chat.objects.all()
 
-    # def get_queryset(self):
-    #     print('in getquery set')
-    #     thread_name = self.request.query_params.get('threadName')
-    #     return 
-
     def list(self, request, *args, **kwargs):
         thread_name = request.query_params.get('threadName')
-        queryset = Chat.objects.filter(thread_name=thread_name).exclude(message__isnull=True).select_related('sender').order_by('date')
+        queryset = Chat.objects.filter(thread_name=thread_name).select_related('sender').order_by('date')
         print(thread_name, queryset)
         serializer = self.get_serializer(queryset, many=True)
         print('in list',serializer.data)
@@ -59,3 +55,32 @@ class ChatListView(views.APIView):
 
         serializer = ChatListUserSerializer(chat_users, many=True,  context={'request': request})
         return response.Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificationSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        return Notification.objects.filter(receiver=self.request.user)
+    
+    @action(detail=True, methods=['post'])
+    def mark_as_read(self, request, id=None):
+        notification = Notification.objects.get(id=id)
+        notification.seen = True
+        notification.save()
+        return response.Response(data='notification',status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'])
+    def mark_all_as_read(self, request):
+        notification = self.get_queryset()
+        print(notification)
+        notification.update(seen=True)
+        return response.Response(data="All notification marked as read", status=status.HTTP_200_OK)
+    
+    def destroy(self, request, id, *args, **kwargs):
+        print(id)
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return response.Response(status=status.HTTP_204_NO_CONTENT)
+    

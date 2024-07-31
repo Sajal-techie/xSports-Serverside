@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.db.models import Q
-from .models import Chat,Users
+from .models import Chat,Users,Notification
 from user_profile.serializers.connection_serializer import FriendListSerializer
 
 class ChatSerializer(serializers.ModelSerializer):
@@ -31,7 +31,8 @@ class ChatListUserSerializer(serializers.ModelSerializer):
             return {
                 'message':last_chat.message,
                 'date': last_chat.date,
-                'is_sender': last_chat.sender == current_user
+                'is_sender': last_chat.sender == current_user,
+                'read': last_chat.read if last_chat.sender == current_user else True
             }
         return None
     
@@ -40,3 +41,9 @@ class ChatListUserSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'userprofile') and obj.userprofile.profile_photo:
             return obj.userprofile.profile_photo.url
         return None
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'sender', 'text', 'link', 'seen', 'created_at','notification_type',  ]

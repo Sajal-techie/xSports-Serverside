@@ -6,6 +6,9 @@ import os
 from django.core.cache import cache
 from django.db.models import Q
 from rest_framework.permissions import IsAuthenticated
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
 from users.models import UserProfile,Sport,Academy,Users
 from users.serializers.user_serializer import CustomUsersSerializer,UserProfileSerializer,SportSerializer
 from .serializers.useracademy_serializer import UserAcademySerializer
@@ -14,6 +17,7 @@ from .serializers.achievement_serializer import AchievementSerializer
 from .serializers.connection_serializer import FriendRequestSerializer,FollowSerializer,FriendListSerializer
 from .models import UserAcademy,Achievements,FriendRequest,Follow
 from common.custom_permission_classes import IsPlayer,IsAcademy,IsUser,IsAdmin 
+from real_time.models import Notification
 
 class ProfileData(views.APIView):
     permission_classes = [IsUser,IsAuthenticated]
@@ -323,7 +327,7 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
         return FriendRequest.objects.filter(to_user=self.request.user).exclude(status='accepted').select_related('to_user') 
 
     def create(self, request, *args, **kwargs):
-        print(request.data,request.user,args,kwargs)
+        print(request.data,request.user,args,kwargs) 
         data = request.data
         from_user = request.user
         to_user = Users.objects.get(id=data['to_user'])
@@ -340,6 +344,35 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
         cache_key2 = f"profile_{to_user.id}"
         cache.delete(cache_key1)
         cache.delete(cache_key2)
+        
+        if friend_request:
+            notification_type = "friend_request"
+            text = f"{from_user.username} sent you a friend request"
+            link = f"/profile/{from_user.id}"
+            notification = Notification.objects.create(
+                                    receiver=to_user,
+                                    sender=from_user,
+                                    notification_type=notification_type,
+                                    text=text,
+                                    link=link,
+                                    seen=False,  
+                                )
+            
+            print(notification,' notificatiomn created')
+            
+            # sent notification to request received user
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f"notification_{to_user.id}",
+                {   'type': 'send_notification',
+                    'data':{
+                        'type': notification_type,
+                        'sender':friend_request.to_user.username,
+                        'text': text,
+                        'link': link
+                    }
+                }
+            )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['get'])
@@ -355,23 +388,41 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
         
         friend_request = FriendRequest.objects.get(from_user=id,to_user=request.user)
         friend_request.accept() # making friends using model method
+        
+        notification_type = 'friend_request_accept'
+        text = f"{friend_request.to_user.username} accepted your friend request"
+        link = f"/profile/{friend_request.to_user.id}" 
+        
+        Notification.objects.create(
+            receiver=friend_request.from_user, 
+            sender=friend_request.to_user,
+            notification_type=notification_type,
+            text=text,
+            link=link,
+            seen=False
+        )
+        # sent notifation to request sent user
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"notification_{friend_request.from_user.id}",
+            {   
+                'type': 'send_notification',
+                'data': {
+                    'type': notification_type,
+                    'sender':friend_request.to_user.username,
+                    'text': text,
+                    'link': link
+                }
+            }
+        )
+
         friend_request.delete() # deleting data from Friend Request Model 
         cache_key1 = f"profile_{id}"
         cache_key2 = f"profile_{request.user.id}"
         cache.delete(cache_key1)
         cache.delete(cache_key2)
         return Response(status=status.HTTP_204_NO_CONTENT)
-    
-    # @action(detail=True, methods=['post'])
-    # def reject_request(self, request, id=None):
-    #     friend_request = FriendRequest.objects.get(from_user=id,to_user=request.user)
-    #     print(friend_request)
-    #     friend_request.reject()
-    #     cache_key1 = f"profile_{id}"
-    #     cache_key2 = f"profile_{request.user.id}"
-    #     cache.delete(cache_key1)
-    #     cache.delete(cache_key2)
-    #     return Response(status=status.HTTP_204_NO_CONTENT)
+
         
     @action(detail=True, methods=['post'])
     def cancel_request(self, request, id=None):
@@ -439,6 +490,33 @@ class FollowViewSet(viewsets.ModelViewSet):
             return Response({'message':'Already following this academy'}, status=status.HTTP_400_BAD_REQUEST)
         
         follow = Follow.objects.create(player=player,academy=academy)
+
+        notification_type = "follow"
+        text = f"{player.username} started following you"
+        link = f"/profile/{player.id}"
+
+        Notification.objects.create(
+            receiver=academy,
+            sender=player,
+            notification_type=notification_type,
+            text=text,
+            link=link,
+            seen=False
+        )
+
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"notification_{academy.id}",
+            {   
+                'type': 'send_notification',
+                'data': {
+                    'type': notification_type,
+                    'sender': player.username,
+                    'text': text,
+                    'link': link
+                }
+            }
+        )
         serializer = FollowSerializer(follow)
         cache_key1 = f"profile_{player.id}"
         cache_key2 = f"profile_{academy.id}"
