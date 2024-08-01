@@ -10,7 +10,7 @@ class Post(DataBaseModels):
     video = models.FileField(upload_to='post_vidoes/',null=True,blank=True)
     
     def __str__(self) -> str:
-        return f"{self.user.username} - {self.content[:10]}"
+        return f"{self.user.username} - posts"
     
 
 class Comment(DataBaseModels):
@@ -23,7 +23,7 @@ class Comment(DataBaseModels):
         ordering = ['created_at']
 
     def __str__(self) -> str:
-        return f"{self.user.username} - {self.content[:10]}"
+        return f"{self.user.username} - comment"
 
 
 class Like(DataBaseModels):

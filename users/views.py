@@ -192,6 +192,14 @@ class Login(APIView):
                 })
 
         role = 'admin' if is_staff and user.is_staff else 'academy' if is_academy else 'player'
+        if role == 'admin':
+            return Response({
+            'status': status.HTTP_200_OK,
+            'message': 'Login Successful',
+            'user':user.username,
+            'role':role,
+            'user_id': user.id,
+        })
         profile_photo = UserProfileSerializer(user.userprofile).data.get('profile_photo',None)
         print(profile_photo)
         notification_count = Notification.objects.filter(receiver=user, seen=False).count()
