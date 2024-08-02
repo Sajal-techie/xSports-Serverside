@@ -385,8 +385,11 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def accept_request(self, request, id=None):
         print(id,request.user,'unios')
+        try:
+            friend_request = FriendRequest.objects.get(from_user=id,to_user=request.user)
+        except FriendRequest.DoesNotExist:
+            return Response(data="Freind request not found", status=status.HTTP_404_NOT_FOUND)
         
-        friend_request = FriendRequest.objects.get(from_user=id,to_user=request.user)
         friend_request.accept() # making friends using model method
         
         notification_type = 'friend_request_accept'
@@ -427,7 +430,11 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def cancel_request(self, request, id=None):
         to_user = Users.objects.get(id=id)
-        friend_request = FriendRequest.objects.get(from_user=request.user,to_user=to_user)
+        try:
+            friend_request = FriendRequest.objects.get(from_user=request.user,to_user=to_user)
+        except FriendRequest.DoesNotExist:
+            return Response(data="friend request does not exist", status=status.HTTP_404_NOT_FOUND)
+        
         friend_request.delete()
         print('freind request cancelled')
         cache_key1 = f"profile_{id}"
@@ -543,3 +550,34 @@ class FollowViewSet(viewsets.ModelViewSet):
         return Response({'message':'You are not following this academy'},status=status.HTTP_400_BAD_REQUEST)
     
 
+class FriendSuggestion(views.APIView):
+    def get(self, request, *args, **kwargs):
+        user = request.user
+
+        user_profile = UserProfile.objects.get(user=user)
+    
+        friends = user.friends.all()
+        
+        friends_of_friends = Users.objects.filter(friends__in=friends)
+        
+        suggestions = (friends_of_friends | Users.objects.filter(
+            Q(userprofile__district=user_profile.district) |
+            Q(sport__sport_name__in=user.sport_set.values_list('sport_name', flat=True))
+        )).exclude(is_academy=True).distinct()
+       
+        suggestions = suggestions.exclude(
+            Q(id=user.id) | Q(id__in=friends)
+        )
+
+        print(suggestions, 'suggestions ddd')
+
+        serializer = FriendListSerializer(suggestions[:7], many=True)
+
+        print(serializer.data, 'suggestion data')
+        return Response(serializer.data)
+    
+
+class AcademySuggestion(views.APIView):
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        

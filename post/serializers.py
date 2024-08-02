@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import Post, Comment, Like
 from user_profile.models import Follow, FriendRequest
+from real_time.models import Notification
+from real_time.task import send_notification
 
 class CommentSerializer(serializers.ModelSerializer):
     replies = serializers.SerializerMethodField()
@@ -38,8 +40,26 @@ class PostSerializer(serializers.ModelSerializer):
                   'updated_at','comments', 'likes_count','profile_photo', 'is_liked_by_current_user', 'user_id']
     
     def create(self, validated_data):
-        print(self.context['request'].user,validated_data)
-        return Post.objects.create(user=self.context['request'].user, **validated_data) 
+        user = self.context['request'].user
+        print(user,validated_data)
+        post = Post.objects.create(user=user, **validated_data) 
+       
+        notification_type = 'new_post'
+        text = f"{user.username} added a new post"
+        link = f"/view_post_details/{post.id}"
+
+        if user.is_academy:
+            receivers_list = list(Follow.objects.filter(
+                                academy=user,
+                            ).values_list('player__id',flat=True))
+        else:
+            receivers_list = list(user.friends.all().values_list('id',flat=True))
+        
+        print(receivers_list,'recivers list',user.is_academy)
+        send_notification.delay(notification_type, text, link,user.id, receivers_list)
+
+
+        return post
 
     def get_likes_count(self, obj):
         return obj.likes.count()

@@ -68,6 +68,6 @@ def register_social_user(provider,email,username):
         register_user.is_verified = True
         register_user.save()
         print(register_user,'usercreated')
-        reg_user = login_social_user(email,settings.SOCIAL_AUTH_PASSWORD)
         UserProfile.objects.create(user=register_user)
+        reg_user = login_social_user(email,settings.SOCIAL_AUTH_PASSWORD)
         return reg_user

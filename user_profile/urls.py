@@ -40,4 +40,5 @@ urlpatterns = [
     path('follow', FollowViewSet.as_view({ 'get': 'list','post':'create'}), name='follow'),
     # path('follow/<int:pk>',FollowViewSet.as_view({'get':'retrieve','put':'update','delete':'destroy'}), name='follows'),
     path('unfollow', unfollow, name='unfollow'),
+    path("friend_suggestion", FriendSuggestion.as_view(), name="friend_suggestion")
 ] 

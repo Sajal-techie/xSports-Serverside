@@ -41,13 +41,12 @@ class PostViewSet(viewsets.ModelViewSet):
             post = Post.objects.get(id=id)
             user = request.user
             print(post,'post')
-            like, created = Like.objects.get_or_create(user=user, post=post)
-            print(like, created,'created')
-            
-            if not created:
+            if Like.objects.filter(user=user,post=post).exists():
+                like = Like.objects.get(user=user,post=post)
                 like.delete()
                 return response.Response({'status':'unliked'}, status=status.HTTP_200_OK)
-            
+
+            Like.objects.create(user=user,post=post) 
             return response.Response({'status':'liked'}, status=status.HTTP_201_CREATED)
         
         except Exception as e:
@@ -167,7 +166,7 @@ class PlayerHomePageView(views.APIView):
                 Q(sport__in=user_sports) |
                 Q(district=user_district)
             )
-        ).order_by('deadline')[:3]
+        ).order_by('deadline')[:3].values('name', 'state', 'district', 'image','id')
 
         if trials.count() < 3:
             additional_trials = Trial.objects.filter(
@@ -175,18 +174,16 @@ class PlayerHomePageView(views.APIView):
                 is_active=True
             ).exclude(
                 id__in=trials.values_list('id', flat=True)
-            ).order_by('deadline')[:3 - trials.count()]
+            ).order_by('deadline')[:3 - trials.count()].values('name', 'state', 'district', 'image','id')
             trials = list(trials) + list(additional_trials)
-
-        trial_details = trials.values('name', 'state', 'district', 'image','id')
 
 
         return response.Response({
             'posts': post_serializer.data,
             'has_more': posts.count() > end,
-            'page': page+1,
+            'page': page + 1,
             'user':user_details,
-            'trials':trial_details,
+            'trials':trials,
             'academies':top_academies
         }, status=status.HTTP_200_OK)
     

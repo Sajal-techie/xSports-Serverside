@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import Trial,TrialRequirement,PlayersInTrial,PlayersInTrialDetails
 from user_profile.serializers.useracademy_serializer import AcademyDetailSerialiezer 
+from real_time.task import send_notification
+from user_profile.models import Follow
 
 class TrialRequirementSerializer(serializers.ModelSerializer):
     class Meta:
@@ -27,6 +29,7 @@ class TrialSerializer(serializers.ModelSerializer):
         requirement_data = validated_data.pop('additionalRequirements',[])
         user = self.context['request'].user
         print(user)
+        validated_data.pop('is_active',None)
         trial = Trial.objects.create(academy=user,is_active=True, **validated_data)
         print(requirement_data,'reqdata',validated_data)
         for requirement in requirement_data:
@@ -34,7 +37,17 @@ class TrialSerializer(serializers.ModelSerializer):
                 TrialRequirement.objects.create(trial=trial,requirement=requirement ) 
             print(requirement,'requeirement',type(requirement))
 
-        print(trial)
+        # send notification to all users following this academy
+        notification_type = 'new_trial'
+        text = f"{user.username} added a new Trial" 
+        link = f"/trial_details/{trial.id}"
+        receivers_list = list(Follow.objects.filter(academy=user).values_list(
+                              'player__id',flat=True
+                              ))
+        
+        print(trial, receivers_list)
+
+        send_notification.delay(notification_type, text, link,user.id, receivers_list)
         return trial
 
 

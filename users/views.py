@@ -7,7 +7,6 @@ from django.core.validators import validate_email
 from django.http import JsonResponse
 from django.db.models import Q,Count
 from django.conf import settings
-from django.contrib.postgres.search import SearchQuery, SearchVector, SearchRank 
 from users.serializers.user_serializer import CustomUsersSerializer,UserProfileSerializer
 from users.serializers.google_serializer import GoogleSignInSerializer
 from .models import Users,Academy
