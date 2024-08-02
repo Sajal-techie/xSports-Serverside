@@ -1,14 +1,18 @@
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.db.models import Q
+from django.db.models import Q, Count
 from rest_framework import status
 from django.conf import settings
+from datetime import timedelta
+from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 from users.serializers.user_serializer import CustomUsersSerializer,SportSerializer,Academyserializer,UserProfileSerializer
 from users.models import Users,Sport,UserProfile,Academy
 from .task import send_alert
 from common.custom_permission_classes import IsAdmin,IsPlayer
+from selection_trial.models import Trial
+from post.models import Post
 
 class AcademyManage(APIView):
     permission_classes = [ IsAuthenticated, IsAdmin | IsPlayer]
@@ -144,3 +148,124 @@ class ToggleActive(APIView):
                 'message': "Updation failed"
             })
             
+
+class DashboardViewSet(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request, *args, **kwargs):
+        print(request.user, args,kwargs, 'user args kwargs')
+
+        today = timezone.now()
+        start_of_the_week = today - timedelta(days=today.weekday())
+
+        #  to fetch weekly perecentage increase of new users
+        total_players = Users.objects.filter(is_academy=False, is_staff=False).count()
+        players_joined_this_week = Users.objects.filter(
+                            is_academy=False,
+                            is_staff=False,
+                            created_at__gte=start_of_the_week).count()
+    
+        if total_players > 0:
+            player_percentage_joined_this_week = (players_joined_this_week / total_players) * 100
+        else:
+            player_percentage_joined_this_week = 0
+
+        #  to fetch weekly percentage increase of academies
+        total_academies = Users.objects.filter(is_academy=True, is_staff=False).count()
+        academies_joined_this_week = Users.objects.filter(
+                            is_academy=True,
+                            is_staff=False,
+                            created_at__gte=start_of_the_week).count()
+        if total_academies > 0:
+            academy_percentage_joined_this_week = (players_joined_this_week / total_players) * 100
+        else:
+            academy_percentage_joined_this_week = 0
+
+        
+        # to fetch weekly percentage of trials
+        total_trials = Trial.objects.filter(is_active=True).count()
+        trials_created_this_week = Trial.objects.filter(
+                        is_active=True,
+                        created_at__gte=start_of_the_week
+                    ).count()
+        if total_trials > 0:
+            trial_percentage_this_week = (trials_created_this_week/total_trials) * 100
+        else:
+            trial_percentage_this_week = 0
+
+        weekly_data = [{
+            'total':total_players,
+            "this_week":players_joined_this_week,
+            'percentage_this_week':player_percentage_joined_this_week,
+            'text': 'Players Joined this Week'
+            },
+            {
+                'total': total_academies,
+                'this_week': academies_joined_this_week,
+                'percentage_this_week':academy_percentage_joined_this_week,
+                'text': 'Academies Joined this Week'
+            },
+            {
+                'total':total_trials,
+                'this_week' : trials_created_this_week,
+                'percentage_this_week': trial_percentage_this_week,
+                'text': 'Trials created this Week '
+            }
+
+        ]
+
+        total_posts = Post.objects.count()
+        # fetching total count for graph
+        stats = {
+            'totalAcademies': total_academies,
+            'totalPlayers': total_players,
+            'totalTrials': total_trials,
+            'totalPosts':total_posts
+        } 
+
+        recent_players = Users.objects.filter(
+            is_academy=False, 
+            is_staff=False
+            ).values(
+                'username',
+                'created_at',
+                'userprofile__profile_photo', 
+                'userprofile__state',
+                'userprofile__district'
+                ).order_by(
+                    '-created_at' 
+                )[:5]
+
+        recent_academies = Users.objects.filter(
+            is_academy=True,
+            is_staff=False
+            ).values(
+                'username',
+                'created_at',
+                'userprofile__profile_photo', 
+                'userprofile__state',
+                'userprofile__district',
+                ).order_by(
+                    '-created_at'
+                )[:5]
+
+        recent_trials = Trial.objects.filter(
+            is_active=True,
+        ).values(
+            'name', 
+            'created_at' ,
+            'trial_date', 
+            'registration_fee', 
+            'sport',
+            'is_registration_fee',
+        ).order_by(
+            '-created_at'
+        )[:7] 
+
+        return Response(data={
+            'players':recent_players,
+            'academies':recent_academies,
+            'trials':recent_trials,
+            'weekly_data':weekly_data,
+            'stats': stats
+        },status=status.HTTP_200_OK) 

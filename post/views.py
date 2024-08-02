@@ -1,12 +1,11 @@
 from rest_framework import viewsets, response, status, views
 from rest_framework.decorators import action
-from django.db.models import Q,Count
+from django.db.models import Q,Count,F,Sum
 from django.utils import timezone
 from datetime import timedelta
-from selection_trial.models import Trial
-from selection_trial.serializers import TrialSerializer
+from selection_trial.models import Trial, PlayersInTrial
 from .models import Post, Comment, Like
-from .serializers import PostSerializer, CommentSerializer, LikeSerializer
+from .serializers import PostSerializer, CommentSerializer
 from users.models import  Users, UserProfile, Sport
 from user_profile.models import FriendRequest, Follow,Achievements
 
@@ -82,7 +81,7 @@ class PostViewSet(viewsets.ModelViewSet):
 
 
 
-class HomePageView(views.APIView):
+class PlayerHomePageView(views.APIView):
     def get(self, request, *args, **kwargs):
         user = request.user
         page = int(request.query_params.get('page', 1))
@@ -190,3 +189,81 @@ class HomePageView(views.APIView):
             'trials':trial_details,
             'academies':top_academies
         }, status=status.HTTP_200_OK)
+    
+
+
+class AcademyDashBoard(views.APIView):
+    def get(self, request, *args, **kwargs):
+        print(request.user,timezone.now(), args, kwargs, 'user args kwargs')
+        academy = request.user
+
+        today = timezone.now()
+
+        total_trials = Trial.objects.filter(academy=academy).count()
+        completed_trials = Trial.objects.filter(academy=academy, is_active=True, trial_date__lt=today).count()
+        upcoming_trials_count = Trial.objects.filter(academy=academy, trial_date__gte=today, is_active=True).count()
+        cancelled_trails = Trial.objects.filter(academy=academy,is_active=False).count()
+
+        total_posts = Post.objects.filter(user=academy).count()
+        followers = Follow.objects.filter(academy=academy).count()
+
+        print(total_trials,completed_trials,upcoming_trials_count,cancelled_trails, total_posts, followers, 'total counts-----')
+
+        posts = Post.objects.filter(user=academy)
+        likes_count = Like.objects.filter(post__in=posts).count()
+        comments_count = Comment.objects.filter(post__in=posts).count()
+        total_interactions = likes_count + comments_count
+        print(posts,likes_count, comments_count,total_interactions, 'likes')
+
+        upcoming_trials = Trial.objects.filter(academy=academy,trial_date__gte=today).order_by('trial_date')[:5].values(
+            'name', 'trial_date', 'sport', 'is_registration_fee', 'registration_fee', 'id'
+        )
+
+        popular_posts = Post.objects.filter(user=academy).annotate(likes_count=Count('likes')).order_by('-likes_count')[:5].values(
+            'content', 'likes_count', 'id'
+        )
+
+        print(upcoming_trials,'recent trials', popular_posts)
+        total_participants = PlayersInTrial.objects.filter(trial__academy=academy).count()
+        
+        total_received_amount = PlayersInTrial.objects.filter(
+                    trial__academy=academy, payment_status='confirmed'
+                ).aggregate(total=Sum('trial__registration_fee'))['total'] or 0
+    
+        recent_payments = PlayersInTrial.objects.filter(
+                    trial__academy=academy, payment_status='confirmed'
+                    ).annotate(
+                        player__username=F('player__username'),
+                        trial__name=F('trial__name'),
+                        payment_amount=F('trial__registration_fee'),
+                        payment_date=F('created_at'),
+                        tr_id=F('trial__id'),
+                        pl_id=F('player__id')
+                    ).values(
+                        'player__username', 'trial__name', 'payment_amount', 'payment_date','tr_id','pl_id'
+                    ).order_by('-created_at')[:6]
+        print(total_received_amount,recent_payments)
+
+        dashboard_data = {
+            'stats':{
+                'totalTrials': total_trials,
+                'completedTrials':completed_trials,
+                'upcomingTrials' : upcoming_trials_count,
+                'cancelledTrials':cancelled_trails,
+            },
+            'recentTrials': list(upcoming_trials),
+            'popularPosts': list(popular_posts),
+            'playerEngagement':{
+                'followers': followers,
+                'trialParticipants':total_participants,
+                'postInteractions':total_interactions
+            },
+            'upcomingTrials': list(upcoming_trials),
+            'payments':{
+                'totalReceived':total_received_amount,
+                'recentPayments':recent_payments
+
+            }
+        }
+
+        return response.Response(dashboard_data)
