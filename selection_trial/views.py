@@ -82,10 +82,7 @@ class TrialViewSet(viewsets.ModelViewSet):
         self.pagination_class = StandardResultsSetPagination
         queryset = queryset.filter(trial_date__gte=today,is_active=True).select_related('academy')
         return queryset
-
-    # def retrieve(self, request, *args, **kwargs):
-    #     print(args,kwargs,'retirve view')
-    #     return super().retrieve(request, *args, **kwargs) 
+ 
 
     def retrieve(self, request,id, *args, **kwargs):
         print(request.data,id, args,kwargs,'==================retrive===========')
@@ -246,5 +243,5 @@ class TrialHistory(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
         print(user)
-        return PlayersInTrial.objects.filter(player=user).select_related('trial')
+        return PlayersInTrial.objects.filter(player=user).select_related('trial').order_by('-id')
 

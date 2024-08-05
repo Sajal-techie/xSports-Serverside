@@ -460,6 +460,11 @@ class FriendViewSet(viewsets.ModelViewSet):
             
             user.friends.remove(friend)
             friend.friends.remove(user)
+
+            cache_key1 = f"profile_{id}"
+            cache_key2 = f"profile_{user.id}"
+            cache.delete(cache_key1)
+            cache.delete(cache_key2)
             
             return Response({
                 'status': status.HTTP_204_NO_CONTENT,
@@ -576,8 +581,3 @@ class FriendSuggestion(views.APIView):
         print(serializer.data, 'suggestion data')
         return Response(serializer.data)
     
-
-class AcademySuggestion(views.APIView):
-    def get(self, request, *args, **kwargs):
-        user = request.user
-        

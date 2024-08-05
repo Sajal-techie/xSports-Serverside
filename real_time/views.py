@@ -1,6 +1,7 @@
 from rest_framework import generics,views,response,status,viewsets
 from django.db.models import Q
 from rest_framework.decorators import action
+from django.core.paginator import Paginator
 from .models import Chat, Users, Notification
 from .serializers import ChatSerializer,ChatListUserSerializer, NotificationSerializer
 
@@ -11,11 +12,25 @@ class ChatView(generics.ListCreateAPIView):
 
     def list(self, request, *args, **kwargs):
         thread_name = request.query_params.get('threadName')
+        page = int(request.query_params.get('page', 1))
+        per_page = 10
+
         queryset = Chat.objects.filter(thread_name=thread_name).select_related('sender').order_by('date')
-        print(thread_name, queryset)
-        serializer = self.get_serializer(queryset, many=True)
+        print(queryset, 'query set',thread_name,page)
+
+        paginator = Paginator(queryset, per_page)
+        total_pages = paginator.num_pages
+        current_page = paginator.page(total_pages - page + 1)
+
+        print('lllll', current_page,'paginatore', paginator)
+        serializer = self.get_serializer(current_page, many=True)
         print('in list',serializer.data)
-        return response.Response(data=serializer.data, status=status.HTTP_200_OK)
+        return response.Response({
+            'data': serializer.data,
+            'has_previous': current_page.has_previous(),
+            'total_pages': total_pages,
+            'current_page': total_pages - page + 1
+        }, status=status.HTTP_200_OK)
 
     # to create new thread name or fetch existing thread name
     def create(self, request, *args, **kwargs):
