@@ -224,11 +224,11 @@ class AcademyDashBoard(views.APIView):
         total_participants = PlayersInTrial.objects.filter(trial__academy=academy).count()
         
         total_received_amount = PlayersInTrial.objects.filter(
-                    trial__academy=academy, payment_status='confirmed'
+                    trial__academy=academy, payment_status='confirmed',trial__is_active=True
                 ).aggregate(total=Sum('trial__registration_fee'))['total'] or 0
     
         recent_payments = PlayersInTrial.objects.filter(
-                    trial__academy=academy, payment_status='confirmed'
+                    trial__academy=academy, payment_status='confirmed',trial__is_active=True
                     ).annotate(
                         player__username=F('player__username'),
                         trial__name=F('trial__name'),

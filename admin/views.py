@@ -11,7 +11,7 @@ from users.serializers.user_serializer import CustomUsersSerializer,SportSeriali
 from users.models import Users,Sport,UserProfile,Academy
 from .task import send_alert
 from common.custom_permission_classes import IsAdmin,IsPlayer
-from selection_trial.models import Trial
+from selection_trial.models import Trial, PlayersInTrial
 from post.models import Post
 
 class AcademyManage(APIView):
@@ -269,3 +269,31 @@ class DashboardViewSet(APIView):
             'weekly_data':weekly_data,
             'stats': stats
         },status=status.HTTP_200_OK) 
+   
+class AccountsView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        
+        payments = PlayersInTrial.objects.filter(trial__is_registration_fee=True,trial__is_active=True)
+        payment_summary = []
+
+        academy_payments = {}
+
+        for payment in payments:
+            academy = payment.trial.academy
+            fee = payment.trial.registration_fee
+
+            if academy.id in academy_payments:
+                academy_payments[academy.id]['total_amount'] += fee
+            else:
+                academy_payments[academy.id] = {
+                    'academy_id': academy.id,
+                    'academy_name': academy.username,  # Assuming username is the academy name
+                    'total_amount': fee
+                }
+
+        payment_summary = list(academy_payments.values())
+        
+        return Response(payment_summary)
