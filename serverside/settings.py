@@ -1,15 +1,15 @@
 from pathlib import Path
 import os
-from decouple import config 
 from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = config("SECRET_KEY")
+
+SECRET_KEY = os.environ.get("SECRET_KEY", 'django-insecure-*z4u52d-3k3bx(h($fw6k+950f0y_lzhyrsb2z4le6&4c^rv5b')
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 
@@ -76,10 +76,10 @@ TEMPLATES = [
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'galacticos',
-        'USER': config("DB_USER"),
-        'PASSWORD': config("DB_PASSWORD"),
-        'HOST': 'my-postgres',
+        'NAME': os.environ.get('DB_NAME'),
+        'USER':os.environ.get("DB_USER"),
+        'PASSWORD': os.environ.get("DB_PASSWORD"),
+        'HOST': 'db',
         'PORT': '5432',
     }
 }
@@ -132,7 +132,7 @@ CHANNEL_LAYERS = {
     "default":{
         "BACKEND":"channels_redis.core.RedisChannelLayer",
         "CONFIG":{
-            'hosts':[("127.0.0.1",6379)]
+            'hosts':[("redis",6379)]
         }
     }
 }
@@ -148,7 +148,7 @@ REST_FRAMEWORK = {
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'LOCATION': 'redis://redis:6379',
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
         },
@@ -164,11 +164,11 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ORIGIN_ALLOW_ALL = True
 
-EMAIL_BACKEND = config('EMAIL_BACKEND')
-EMAIL_HOST = config('EMAIL_HOST')
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND')
+EMAIL_HOST = os.environ.get('EMAIL_HOST')
 EMAIL_PORT = 587
-EMAIL_HOST_USER = config('HOST_USER')
-EMAIL_HOST_PASSWORD = config('APP_PASS')
+EMAIL_HOST_USER = os.environ.get('HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('APP_PASS')
 EMAIL_USE_TLS = True
 
 SIMPLE_JWT = {
@@ -211,20 +211,20 @@ SIMPLE_JWT = {
 }
 
 
-CELERY_BROKER_URL = 'redis://localhost:6379'
-CELERY_RESULT_BACKEND = "django-db"
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_RESULT_BACKEND = "redis://redis:6379/0"
 CELERY_ACCEPT_CONTENT = ["application/json"]
 CELERY_RESULT_SERIALIZER="json"
 CELERY_TASK_SERIALIZER="json"
 CELERY_TIMEZONE="Asia/Kolkata"
 
 
-GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET =config("GOOOGLE_CLIENT_SECRET")
-SOCIAL_AUTH_PASSWORD = config("SOCIAL_AUTH_PASSWORD") 
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOOGLE_CLIENT_SECRET")
+SOCIAL_AUTH_PASSWORD = os.environ.get("SOCIAL_AUTH_PASSWORD") 
 
 
-STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY")
-STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET")
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
 
-SITE_URL = config("SITE_URL")
+SITE_URL = os.environ.get("SITE_URL")

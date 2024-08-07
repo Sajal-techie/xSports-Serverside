@@ -1,0 +1,87 @@
+version: '3.9'
+services:
+  web:
+    build: .
+    command: ["gunicorn", "--bind", ":8000", "serverside.wsgi:application"]
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+
+    networks:
+      - serverside-network
+
+  db:
+    image: postgres
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+
+    networks:
+      - serverside-network
+
+  # celery-beat:
+  #   build: .
+  #   command: ["celery", "-A", "serverside", "beat", "--loglevel=info"]
+  #   volumes:
+  #     - .:/app 
+  #     - .:/app
+  #   depends_on:
+  #     - db
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - serverside-network
+
+  celery-worker:
+    build: .
+    command: ["celery", "-A", "serverside", "worker", "--loglevel=info"]
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+    networks:
+      - serverside-network
+
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"
+    networks:
+      - serverside-network
+      
+  daphne:
+    build: .
+    command: ["daphne", "-b", "0.0.0.0", "-p", "8001", "serverside.asgi:application"]
+    volumes:
+      - .:/app
+    ports:
+      - "8001:8001"
+    depends_on:
+      - db
+      - web
+      - redis
+    env_file:
+      - .env
+    networks:
+      - serverside-network
+
+  
+
+volumes:
+  db_data:
+
+networks:
+  serverside-network:
+    driver: bridge

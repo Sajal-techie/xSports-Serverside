@@ -83,8 +83,8 @@ class Signup(APIView):
                 
                 })  
         except Exception as e:
-            print(e,'exeption errorrrrr')
-            return Response(e,status=status.HTTP_400_BAD_REQUEST)
+            print(str(e),'exeption errorrrrr')
+            return Response(str(e),status=status.HTTP_400_BAD_REQUEST)
  
 
 class VerifyOtp(APIView):
@@ -151,7 +151,7 @@ class Login(APIView):
                 'status': status.HTTP_400_BAD_REQUEST,
                'message': 'Invalid Password'
             })
-        if user.is_superuser or (user.is_staff and not is_staff):
+        if (not is_staff and user.is_superuser) or (user.is_staff and not is_staff):
             return Response({
                 'status':status.HTTP_400_BAD_REQUEST,
                 'message':'Admin cannot loggin as user'
@@ -176,6 +176,17 @@ class Login(APIView):
                 'status':status.HTTP_400_BAD_REQUEST,
                 'message': 'You are signed in as player try player login'
             })
+
+        role = 'admin' if is_staff and user.is_staff else 'academy' if is_academy else 'player'
+        if role == 'admin':
+            return Response({
+            'status': status.HTTP_200_OK,
+            'message': 'Login Successful',
+            'user':user.username,
+            'role':role,
+            'user_id': user.id,
+        })
+
         if not user.is_verified:
             send_otp.delay(email)
             return Response({
@@ -189,16 +200,7 @@ class Login(APIView):
                     'status':status.HTTP_400_BAD_REQUEST,
                     'message':'You are not approved by admin '
                 })
-
-        role = 'admin' if is_staff and user.is_staff else 'academy' if is_academy else 'player'
-        if role == 'admin':
-            return Response({
-            'status': status.HTTP_200_OK,
-            'message': 'Login Successful',
-            'user':user.username,
-            'role':role,
-            'user_id': user.id,
-        })
+            
         profile_photo = UserProfileSerializer(user.userprofile).data.get('profile_photo',None)
         print(profile_photo)
         notification_count = Notification.objects.filter(receiver=user, seen=False).count()

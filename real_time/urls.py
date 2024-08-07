@@ -1,5 +1,5 @@
 from django.urls import path,include
-from .import views
+from . import views
 
 mark_as_read = views.NotificationViewSet.as_view({
     'post': 'mark_as_read'

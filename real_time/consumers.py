@@ -3,8 +3,8 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.utils import timezone
 from django.conf import settings
-from .models import Chat,Users, Notification
-from .serializers import ChatSerializer
+from . models import Chat,Users, Notification
+from . serializers import ChatSerializer
 
 class PersonalChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
