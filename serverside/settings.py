@@ -159,6 +159,8 @@ CACHES = {
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://localhost:3000',
+    'https://xsports-seven.vercel.app',
+    'http://xsports-seven.vercel.app'
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
