@@ -28,7 +28,7 @@ class JWTAuthenticationMiddleware:
                 ]
         
         print(request.path, 'path in middleware\n')
-        if request.path in public_urls or request.path.startswith('/xsports/media/') or request.path.startswith('/ws/') :
+        if request.path in public_urls or request.path.startswith('/media/') or request.path.startswith('/ws/') :
             print('in if and returend resopinse')
             print(request.headers.get('Authorization', None),'authheader in if')
             return self.get_response(request)
