@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_celery_results",
     "channels",
+
     # custom apps
     "users",
     "user_profile",
@@ -69,7 +70,7 @@ TEMPLATES = [
 ]
 
 
-# Database - Postgres
+# Database settings for PostgreSQL
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -101,11 +102,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "UTC"
-
 USE_I18N = True
-
 USE_TZ = True
 
 
@@ -125,6 +123,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 WSGI_APPLICATION = "serverside.wsgi.application"
 ASGI_APPLICATION = "serverside.asgi.application"
 
+# Channel layers configuration for real-time features
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -133,13 +132,14 @@ CHANNEL_LAYERS = {
 }
 
 
-# authenticatoion classes
+# REST framework settings including JWT authentication
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ]
 }
 
+# Caching configuration using Redis
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
@@ -151,6 +151,7 @@ CACHES = {
 }
 
 
+# CORS settings for handling cross-origin requests
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
@@ -161,6 +162,7 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ORIGIN_ALLOW_ALL = True
 
+# Email backend configuration
 EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND")
 EMAIL_HOST = os.environ.get("EMAIL_HOST")
 EMAIL_PORT = 587
@@ -168,6 +170,7 @@ EMAIL_HOST_USER = os.environ.get("HOST_USER")
 EMAIL_HOST_PASSWORD = os.environ.get("APP_PASS")
 EMAIL_USE_TLS = True
 
+# JWT settings for token lifetimes and handling
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
@@ -202,6 +205,7 @@ SIMPLE_JWT = {
 }
 
 
+# Celery configuration for asynchronous tasks
 CELERY_BROKER_URL = "redis://redis:6379/0"
 CELERY_RESULT_BACKEND = "redis://redis:6379/0"
 CELERY_ACCEPT_CONTENT = ["application/json"]
@@ -210,11 +214,13 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_TIMEZONE = "Asia/Kolkata"
 
 
+# Google OAuth settings
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOOGLE_CLIENT_SECRET")
 SOCIAL_AUTH_PASSWORD = os.environ.get("SOCIAL_AUTH_PASSWORD")
 
 
+# Stripe payment settings
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
 

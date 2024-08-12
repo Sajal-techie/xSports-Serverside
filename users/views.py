@@ -19,11 +19,20 @@ from .task import send_otp
 
 
 class Signup(APIView):
+    """
+    API endpoint to handle user signup.
+
+    This view handles the creation of new users (players or academies) 
+    and validates the provided data. It also sends an OTP to the user's 
+    email for verification.
+    """
     def post(self, request):
         data = request.data
 
-        # validations
+        # Initialize an empty dictionary for validation errors
         errors = {}
+
+        # validate email
         email = data.get("email", None)
         if not email:
             errors["email"] = "Email field is Required"
@@ -33,45 +42,44 @@ class Signup(APIView):
             except Exception:
                 errors["email"] = "Email is not Valid"
 
-
+        # If the user is an academy, set the 'sport' field
         if "is_academy" in data:
             if data["is_academy"] == "true":
                 data.setlist("sport", request.data.getlist("sport[]", []))
 
-        if "username" in data:
-            if not data["username"]:
-                errors["username"] = "Name is required"
-        if "sport" in data:
-            if not data["sport"]:
-                errors["sport"] = "Sport is Required"
-        if "state" in data:
-            if not data["state"]:
-                errors["state"] = "State is required"
-        if "district" in data:
-            if not data["district"]:
-                errors["district"] = "District is required"
-        if "dob" in data:
-            if not data["dob"]:
-                errors["dob"] = "Date of birth is required"
-        if "password" in data:
-            if not data["password"]:
-                errors["password"] = "Password is required"
-        if "license" in data:
-            if not data["license"]:
-                errors["license"] = "License is required"
+        # Validate required fields
+        if "username" in data and not data["username"]:
+            errors["username"] = "Name is required"
+        if "sport" in data and not data["sport"]:
+            errors["sport"] = "Sport is Required"
+        if "state" in data and not data["state"]:
+            errors["state"] = "State is required"
+        if "district" in data and not data["district"]:
+            errors["district"] = "District is required"
+        if "dob" in data and not data["dob"]:
+            errors["dob"] = "Date of birth is required"
+        if "password" in data and not data["password"]:
+            errors["password"] = "Password is required"
+        if "license" in data and not data["license"]:
+            errors["license"] = "License is required"
 
-        print(errors, "errors")
+        # Check if an account with the provided email already exists
         if Users.objects.filter(email=email).exists():
             errors["email"] = "Account with Email already exist try login"
 
+        # If there are validation errors, return them in the response
         if errors:
             return Response(
                 {"status": status.HTTP_400_BAD_REQUEST, "message": errors.values()}
             )
+        
+        # Serialize user data and save the new user
         user_serializer = CustomUsersSerializer(data=data)
         try:
             user_serializer.is_valid(raise_exception=True)
             user_serializer.save()
+
+            # Send OTP for email verification
             send_otp.delay(email)
             return Response(
                 {
@@ -85,12 +93,19 @@ class Signup(APIView):
 
 
 class VerifyOtp(APIView):
+    """
+    API endpoint to verify the OTP sent to the user's email during signup, login or forget password.
+    
+    This view checks the OTP provided by the user and marks the account as verified if correct.
+    """
     def put(self, request):
         try:
             data = request.data
             email = data["email"] if "email" in data else None
             otp = data["otp"] if "otp" in data else None
             user = Users.objects.get(email=email)
+
+            # Check if the OTP has expired
             if not user.otp:
                 return Response(
                     {
@@ -98,6 +113,8 @@ class VerifyOtp(APIView):
                         "message": "OTP Expired try resending otp",
                     }
                 )
+            
+            # Verify the OTP
             if user.otp == otp:
                 user.otp = None
                 user.is_verified = True
@@ -119,10 +136,18 @@ class VerifyOtp(APIView):
 
 
 class Login(APIView):
+    """
+    API endpoint to handle user login.
+    
+    This view authenticates users (players, academies, or admins) based on their email and password.
+    It also checks the user's role and returns the appropriate response.
+    """
     def post(self, request):
         data = request.data
-        email = data["email"] if "email" in data else None
-        password = data["password"] if "password" in data else None
+        email = data.get("email", None)
+        password = data.get("password", None)
+
+        # Validate email and password fields
         if email is None:
             return Response(
                 {
@@ -137,10 +162,14 @@ class Login(APIView):
                     "message": "password field is required",
                 }
             )
+        
+        # Determine if the user is an academy or admin
         is_academy = False
         if "is_academy" in data:
             is_academy = data["is_academy"]
         is_staff = True if "is_staff" in data else False
+
+        # Check if the email exists in the database
         if not Users.objects.filter(email=email).exists():
             return Response(
                 {
@@ -148,11 +177,16 @@ class Login(APIView):
                     "message": "Email Does Not Exists",
                 }
             )
+        
         user = Users.objects.get(email=email)
+
+        # Check if the password is correct
         if not user.check_password(password):
             return Response(
                 {"status": status.HTTP_400_BAD_REQUEST, "message": "Invalid Password"}
             )
+        
+        # Check if an admin is trying to log in as a regular user or vice versa
         if (not is_staff and user.is_superuser) or (user.is_staff and not is_staff):
             return Response(
                 {
@@ -167,10 +201,14 @@ class Login(APIView):
                     "message": "You are not an admin ",
                 }
             )
+        
+        # Check if the user account is active
         if not user.is_active:
             return Response(
                 {"status": status.HTTP_400_BAD_REQUEST, "message": "You are blocked"}
             )
+        
+        # Ensure the academy/user if logging in with the correct role
         if user.is_academy and not is_academy:
             return Response(
                 {
@@ -186,11 +224,14 @@ class Login(APIView):
                 }
             )
 
+        # Determine user role
         role = (
             "admin"
             if is_staff and user.is_staff
             else "academy" if is_academy else "player"
         )
+
+        # Handle admin login response
         if role == "admin":
             return Response(
                 {
@@ -202,11 +243,14 @@ class Login(APIView):
                 }
             )
 
+        # Send OTP if the user is not verified
         if not user.is_verified:
             send_otp.delay(email)
             return Response(
                 {"status": status.HTTP_403_FORBIDDEN, "message": "You are not verified"}
             )
+        
+        # Check academy certification if the user if an academy
         if is_academy:
             academy = Academy.objects.get(user=user)
             if not academy.is_certified:
@@ -217,6 +261,7 @@ class Login(APIView):
                     }
                 )
 
+        # Get user's profile photo and notification count
         profile_photo = UserProfileSerializer(user.userprofile).data.get(
             "profile_photo", None
         )
@@ -239,6 +284,11 @@ class Login(APIView):
 
 
 class GoogleSignIn(GenericAPIView):
+    """
+    API endpoint to handle Google sign-in.
+    
+    This view verifies the Google sign-in token and returns the user's data.
+    """
     serializer_class = GoogleSignInSerializer
 
     def post(self, request):
@@ -249,18 +299,25 @@ class GoogleSignIn(GenericAPIView):
 
 
 class Logout(APIView):
+    """
+    API endpoint to handle user logout.
+    
+    This view invalidates the user's JWT tokens upon logout.
+    """
     def post(self, request):
-        try:
-            refresh = request.data.get("refresh")
-            token = RefreshToken(refresh)
+        refresh_token = request.data.get("refresh")
+        if refresh_token:
+            token = RefreshToken(refresh_token)
             token.blacklist()
-            return Response(status=200)
-        except Exception as e:
-            print(e, "error in logout")
-            return Response(status=400)
+        return Response(status=200, data="Logged out successfully")
 
 
 class ResendOtp(APIView):
+    """
+    API endpoint to resend OTP
+    
+    This view resend the OTP to the users email
+    """
     def post(self, request):
         try:
             email = request.data["email"]
@@ -276,11 +333,22 @@ class ResendOtp(APIView):
 
 
 class ForgetPassword(APIView):
+    """
+    View to handle password reset functionality.
+
+    If the email exists in the request data, it checks for the presence of a 
+    new password. If provided, it resets the user's password. If not, it sends 
+    an OTP to the email if the user exists. Returns appropriate messages for 
+    each case.
+    """
     def post(self, request):
         try:
             if "email" in request.data:
                 email = request.data["email"]
+
+                # Check if the request includes a new password
                 if "password" in request.data:
+                    # Get the user by email and reset the password
                     user = Users.objects.get(email=email)
                     user.set_password(request.data["password"])
                     user.save()
@@ -321,10 +389,19 @@ class ForgetPassword(APIView):
 
 
 class SearchResult(APIView):
+    """
+    View to handle search functionality.
+    
+    Searches for users, trials, and other entities based on the query 
+    provided in the request. The search results include additional 
+    information like friend and follow status, allowing for a more 
+    detailed and contextual response.
+    """
     def get(self, request):
         current_user = request.user
         query = request.GET.get("q", "")
         if query:
+            # search for user based on username or bio content
             users = (
                 Users.objects.filter(
                     Q(username__icontains=query) | Q(userprofile__bio__icontains=query),
@@ -350,6 +427,7 @@ class SearchResult(APIView):
                 )
             )
 
+            # Search  for trials based on the current user's role (academy/player)
             if current_user.is_academy:
                 trials = (
                     Trial.objects.filter(name__icontains=query, academy=current_user)
@@ -365,10 +443,12 @@ class SearchResult(APIView):
 
             # posts = Post.objects.filter(title__icontains=query).values('id', 'title')
 
+            # Fetch friend requests related to the current user
             friend_requests = FriendRequest.objects.filter(
                 Q(from_user_id=current_user) | Q(to_user_id=current_user)
             ).values("from_user", "to_user", "status")
 
+            # Fetch academies followed by the current user
             follows = Follow.objects.filter(player=current_user).values_list(
                 "academy", flat=True
             )
@@ -378,6 +458,8 @@ class SearchResult(APIView):
 
             base_url = request.build_absolute_uri(settings.MEDIA_URL)
             suggestions = []
+
+            # Using user results determine friend adn follow status
             for user in users:
                 friend_status = "none"
 
@@ -397,14 +479,15 @@ class SearchResult(APIView):
                 follow_status = "not_following"
                 if (
                     user["is_academy"] and user["id"] in follows
-                ):  # if the user is player and player is following the resulted academy
+                ):  # Player following the academy
                     follow_status = "following"
 
                 if (
                     not user["is_academy"] and user["id"] in followers
-                ):  # if the user is academy and academy is followed by the player
+                ):  # Academy followed by the player
                     follow_status = "follower"
 
+                # Compile the user data
                 suggestions.append(
                     {
                         "id": user["id"],

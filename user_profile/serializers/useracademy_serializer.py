@@ -5,12 +5,30 @@ from ..models import UserAcademy
 
 
 class AcademyProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the profile photo of an academy.
+
+    This serializer retrieves the profile photo of the academy from the `UserProfile` model.
+
+    Fields:
+    - profile_photo: The URL of the academy's profile photo.
+    """
     class Meta:
         model = UserProfile
         fields = ["profile_photo"]
 
 
 class AcademyDetailSerialiezer(serializers.ModelSerializer):
+    """
+    Serializer for detailed information about an academy.
+
+    This serializer includes the academy's profile photo and username.
+
+    Fields:
+    - id: The unique identifier of the academy.
+    - username: The username of the academy.
+    - profile: The profile details of the academy including profile photo.
+    """
     profile = AcademyProfileSerializer(source="userprofile", read_only=True)
 
     class Meta:
@@ -19,6 +37,24 @@ class AcademyDetailSerialiezer(serializers.ModelSerializer):
 
 
 class UserAcademySerializer(serializers.ModelSerializer):
+    """
+    Serializer for the user's academy experience.
+
+    This serializer handles the user's experience with academies, including the 
+    details of the academy, the position played, and the duration of the experience.
+
+    Fields:
+    - id: The unique identifier for the user's academy experience.
+    - academy: The academy the user was associated with.
+    - start_month: The month when the user started at the academy.
+    - start_year: The year when the user started at the academy.
+    - end_month: The month when the user ended at the academy (if applicable).
+    - end_year: The year when the user ended at the academy (if applicable).
+    - position: The position or role of the user at the academy.
+    - is_current: Boolean indicating if the association is still ongoing.
+    - sport: The sport associated with the academy experience.
+    - academy_details: Detailed information about the academy.
+    """
     academy_details = AcademyDetailSerialiezer(
         source="academy", read_only=True, required=False
     )

@@ -9,18 +9,36 @@ from .models import (PlayersInTrial, PlayersInTrialDetails, Trial,
 
 
 class TrialRequirementSerializer(serializers.ModelSerializer):
+    """
+    Serializer for TrialRequirement model.
+    
+    Serializes the 'requirement' field from the TrialRequirement model.
+    """
     class Meta:
         model = TrialRequirement
         fields = ["requirement"]
 
 
 class TrialSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Trial model.
+
+    Handles serialization and deserialization of Trial objects.
+    It also manages the creation of new Trial objects, including additional requirements,
+    and sends notifications to users following the academy when a new trial is created.
+
+    Attributes:
+        additionalRequirements (list): A list of additional requirements provided during trial creation.
+        additional_requirements (TrialRequirementSerializer): Serialized additional requirements for frontend use.
+        academy_details (AcademyDetailSerialiezer): Serialized details of the academy hosting the trial.
+        player_count (int): The count of players registered for the trial.
+    """
     additionalRequirements = serializers.ListField(
         required=False
-    )  # to create a new trial using this additional requirement
+    )  # For creating a new trial with additional requirements.
     additional_requirements = TrialRequirementSerializer(
         many=True, read_only=True
-    )  # to pass additional requirement to front end
+    )  # For passing additional requirements to the frontend.
     academy_details = AcademyDetailSerialiezer(
         source="academy", read_only=True, required=False
     )
@@ -58,6 +76,8 @@ class TrialSerializer(serializers.ModelSerializer):
         user = self.context["request"].user
         validated_data.pop("is_active", None)
         trial = Trial.objects.create(academy=user, is_active=True, **validated_data)
+
+        # Add additional requirements to the TrialRequirement model.
         for requirement in requirement_data:
             if requirement:
                 TrialRequirement.objects.create(trial=trial, requirement=requirement)
@@ -75,12 +95,27 @@ class TrialSerializer(serializers.ModelSerializer):
 
 
 class PlayersInTrialDetialsSerializer(serializers.ModelSerializer):
+    """
+    Serializer for PlayersInTrialDetails model.
+
+    Serializes additional requirements for players in a trial.
+    """
     class Meta:
         model = PlayersInTrialDetails
         fields = ["id", "requirement", "value"]
 
 
 class PlayersInTrialSerializer(serializers.ModelSerializer):
+    """
+    Serializer for PlayersInTrial model.
+
+    Handles serialization and deserialization of PlayersInTrial objects.
+    Manages the creation of player registration in trials, including additional requirements.
+
+    Attributes:
+        additional_requirements (PlayersInTrialDetialsSerializer): Serialized additional requirements for players.
+    """
+
     additional_requirements = PlayersInTrialDetialsSerializer(
         many=True, required=False, source="playersintrial"
     )
@@ -106,7 +141,20 @@ class PlayersInTrialSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
-        #  return error if player already joined the same trial
+        """
+        Validates the player's registration in a trial.
+
+        Ensures that the player has not already registered for the same trial.
+
+        Args:
+            attrs (dict): The attributes to validate.
+
+        Raises:
+            serializers.ValidationError: If the player is already registered for the trial.
+
+        Returns:
+            dict: The validated attributes.
+        """
         if PlayersInTrial.objects.filter(
             trial=attrs["trial"], player=attrs["player"]
         ).exists():
@@ -116,6 +164,8 @@ class PlayersInTrialSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         additional_requirements = validated_data.pop("playersintrial", [])
         player = PlayersInTrial.objects.create(status="registered", **validated_data)
+
+        # Add additional requirements to the player's trial registration.
         for details in additional_requirements:
             PlayersInTrialDetails.objects.create(
                 player_trial=player,
@@ -127,6 +177,13 @@ class PlayersInTrialSerializer(serializers.ModelSerializer):
 
 
 class TrialHistorySerializer(serializers.ModelSerializer):
+    """
+    Serializer for PlayersInTrial model to provide trial history.
+
+    Provides detailed information about the trials a player has participated in, 
+    including trial details and the player's status in those trials.
+    """
+    
     academy_name = serializers.CharField(source="trial.academy.username")
     trial_id = serializers.IntegerField(source="trial.id")
     trial_name = serializers.CharField(source="trial.name")

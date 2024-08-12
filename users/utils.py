@@ -11,23 +11,50 @@ from .models import UserProfile, Users
 
 
 class Google:
+    """
+    A class for handling Google OAuth2 token validation.
+    """
     @staticmethod
     def validate(access_token):
+        """
+        Validates the provided Google OAuth2 access token.
+        
+        Args:
+            access_token (str): The Google OAuth2 access token to validate.
+        
+        Returns:
+            dict or str: The token information if valid, otherwise an error message.
+        """
         try:
+            # Verify the OAuth2 token with Google's servers
             id_info = id_token.verify_oauth2_token(
                 access_token,
                 requests.Request(),
                 audience=None,
                 clock_skew_in_seconds=60,
             )
+            # Check if the issuer is Google
             if "accounts.google.com" in id_info["iss"]:
                 return id_info
         except Exception as e:
             print(e, "exception in validate")
-            return "token is invalid or has expired"
+            return "Token is invalid or has expired"
 
 
 def login_social_user(email, password):
+    """
+    Authenticates a user and returns user details along with JWT tokens.
+
+    Args:
+        email (str): The email of the user.
+        password (str): The password of the user.
+
+    Returns:
+        dict: A dictionary containing user details and JWT tokens.
+
+    Raises:
+        AuthenticationFailed: If authentication fails.
+    """
     user = authenticate(email=email, password=password)
     token_serializer = TokenObtainPairSerializer(
         data={"email": email, "password": password}
@@ -56,9 +83,25 @@ def login_social_user(email, password):
 
 
 def register_social_user(provider, email, username):
+    """
+    Registers a new user or logs in an existing user based on social authentication.
+
+    Args:
+        provider (str): The social authentication provider (e.g., Google).
+        email (str): The email of the user.
+        username (str): The username of the user.
+
+    Returns:
+        dict: A dictionary containing user details and JWT tokens.
+
+    Raises:
+        AuthenticationFailed: If the user exists but is registered with a different provider.
+    """
+
     user = Users.objects.filter(email=email)
     if user.exists():
         if provider == user[0].auth_provider:
+            # Log in the user if the provider matches
             auth_user = login_social_user(email, settings.SOCIAL_AUTH_PASSWORD)
             return auth_user
         else:
@@ -66,6 +109,7 @@ def register_social_user(provider, email, username):
                 detail=f"please continue login with {user[0].auth_provider}"
             )
     else:
+        # Register a new user if they do not exist
         new_user = {
             "email": email,
             "username": username,

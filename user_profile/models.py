@@ -4,6 +4,23 @@ from users.models import Users
 
 
 class UserAcademy(DataBaseModels):
+    """
+    Represents a user's association with an academy.
+
+    Attributes:
+        user: The user associated with the academy.
+        academy: The academy associated with the user.
+        start_month: The month when the user started with the academy.
+        start_year: The year when the user started with the academy.
+        end_month: The month when the user ended with the academy (if applicable).
+        end_year: The year when the user ended with the academy (if applicable).
+        position: The position or role of the user in the academy.
+        is_current: Boolean indicating if the association is currently active.
+        location: The location of the academy.
+        description: A description of the user's experience with the academy.
+        sport: The sport the user was involved with at the academy.
+    """
+
     user = models.ForeignKey(
         Users, on_delete=models.SET_NULL, null=True, related_name="userDetails"
     )
@@ -25,6 +42,19 @@ class UserAcademy(DataBaseModels):
 
 
 class Achievements(DataBaseModels):
+    """
+    Represents a user's achievement.
+
+    Attributes:
+        user: The user who received the achievement.
+        title: The title of the achievement.
+        issued_by: The entity or person who issued the achievement.
+        issued_month: The month when the achievement was issued.
+        issued_year: The year when the achievement was issued.
+        image: An image representing the achievement.
+        description: A description of the achievement.
+    """
+
     user = models.ForeignKey(
         Users, on_delete=models.SET_NULL, null=True, related_name="user_achievements"
     )
@@ -40,6 +70,15 @@ class Achievements(DataBaseModels):
 
 
 class FriendRequest(DataBaseModels):
+    """
+    Represents a friend request between users.
+
+    Attributes:
+        from_user: The user who sent the friend request.
+        to_user: The user who received the friend request.
+        status: The status of the friend request (e.g., pending or accepted).
+    """
+
     PENDING = "pending"
     ACCEPTED = "accepted"
     STATUS_CHOICES = [
@@ -59,14 +98,26 @@ class FriendRequest(DataBaseModels):
         unique_together = ("from_user", "to_user")
 
     def accept(self):
+        """
+        Accept the friend request and establish a friendship between users.
+        """
         self.status = self.ACCEPTED
         self.save()
 
+        # Add each user to the other's friends list
         self.from_user.friends.add(self.to_user)
         self.to_user.friends.add(self.from_user)
 
 
 class Follow(DataBaseModels):
+    """
+    Represents a follow relationship where a player follows an academy.
+
+    Attributes:
+        player: The player who follows the academy.
+        academy: The academy being followed by the player.
+    """
+    
     player = models.ForeignKey(
         Users, related_name="following", on_delete=models.CASCADE
     )

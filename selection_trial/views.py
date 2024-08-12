@@ -1,5 +1,4 @@
 from datetime import date
-
 import stripe
 import stripe.error
 from common.custom_pagination_class import StandardResultsSetPagination
@@ -15,24 +14,44 @@ from .serializers import (PlayersInTrialSerializer, TrialHistorySerializer,
                           TrialSerializer)
 from .tasks import send_status_mail, send_trial_cancellation_mail
 
+# Set Stripe API key and webhook secret from settings
 stripe.api_key = settings.STRIPE_SECRET_KEY
 webhook_secret = settings.STRIPE_WEBHOOK_SECRET
 
 
 class TrialViewSet(viewsets.ModelViewSet):
+    """
+    API view to manage trials.
+
+    Attributes:
+        queryset: The queryset for the Trial model.
+        serializer_class: The serializer class for the Trial model.
+        lookup_field: The field used to look up the Trial instance.
+    """
     queryset = Trial.objects.all()
     serializer_class = TrialSerializer
     lookup_field = "id"
 
     def get_permissions(self):
+        """
+        Determine the permissions based on the action.
+
+        Returns:
+            list: A list of permission classes to be used for the request.
+        """
         if self.action in ["list", "retrieve", "player_detials_in_trial"]:
             permission_classes = [IsUser | IsAdmin]
         else:
             permission_classes = [IsAcademy]
         return [permission() for permission in permission_classes]
 
-    def get_queryset(self, *args, **kwargs):
+    def get_queryset(self):
+        """
+        Get the queryset for the view based on filtering parameters.
 
+        Returns:
+            queryset: The filtered queryset for the Trial model.
+        """
         user = self.request.user
         queryset = (
             Trial.objects.all()
@@ -73,11 +92,11 @@ class TrialViewSet(viewsets.ModelViewSet):
             return queryset
 
         if user.is_academy:
-            # if requested by academy then only show only the trial created by them
+            # Filter trials created by the current academy
             queryset = queryset.filter(academy=user, is_active=True)
             return queryset
 
-        # if requested by players then show all trials with trialdate less than today's date
+        # Filter trials for players with trial dates in the future
         today = date.today()
         self.pagination_class = StandardResultsSetPagination
         queryset = queryset.filter(
@@ -85,7 +104,17 @@ class TrialViewSet(viewsets.ModelViewSet):
         ).select_related("academy")
         return queryset
 
-    def retrieve(self, request, id, *args, **kwargs):
+    def retrieve(self,request):
+        """
+        Retrieve a specific trial by its ID.
+
+        Args:
+            request: The HTTP request object.
+            id: The ID of the trial to retrieve.
+
+        Returns:
+            response.Response: The trial details or an error response.
+        """
         try:
             trial = (
                 Trial.objects.filter(id=id)
@@ -98,8 +127,18 @@ class TrialViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(trial)
         return response.Response(serializer.data, status=status.HTTP_200_OK)
 
-    # make trial is_active to false if trial cancelled by academy
-    def destroy(self, request, id, *args, **kwargs):
+    def destroy(self, request, id):
+        """
+        Mark a trial as inactive and notify registered players if the trial is canceled.
+
+        Args:
+            request: The HTTP request object.
+            id: The ID of the trial to delete.
+
+        Returns:
+            response.Response: A response indicating the success or failure of the operation.
+        """
+
         reason = request.query_params.get("reason", None)
         trial = Trial.objects.get(id=id)
         players_in_trial = PlayersInTrial.objects.filter(trial=trial)
@@ -113,8 +152,17 @@ class TrialViewSet(viewsets.ModelViewSet):
         trial.save()
         return response.Response(status=status.HTTP_200_OK)
 
-    # to fetch details of the user (if registered)  white viewing trial details
-    def player_detials_in_trial(self, request, id=None, *args, **kwargs):
+    def player_detials_in_trial(self, request, id=None):
+        """
+        Fetch the details of the user registered for a specific trial.
+
+        Args:
+            request: The HTTP request object.
+            id: The ID of the trial.
+
+        Returns:
+            response.Response: The player details or a no-content response if not registered.
+        """
         user = request.user
         if not PlayersInTrial.objects.filter(player=user, trial=id).exists():
             return response.Response(status=status.HTTP_204_NO_CONTENT)
@@ -124,7 +172,7 @@ class TrialViewSet(viewsets.ModelViewSet):
             player_details.trial.is_registration_fee
             and player_details.payment_status == "pending"
         ):
-            # if the payment is not completed then remove the data
+            # Remove player details if payment is pending
             player_details.delete()
             return response.Response(status=status.HTTP_204_NO_CONTENT)
         serializer = PlayersInTrialSerializer(player_details)
@@ -132,13 +180,33 @@ class TrialViewSet(viewsets.ModelViewSet):
 
 
 class PlayersInTrialViewSet(viewsets.ModelViewSet):
+    """
+    API view to manage players in trials.
+
+    Attributes:
+        queryset: The queryset for the PlayersInTrial model.
+        serializer_class: The serializer class for the PlayersInTrial model.
+        lookup_field: The field used to look up the PlayersInTrial instance.
+        permission_classes: The permissions required for this view.
+    """
+
     queryset = PlayersInTrial.objects.all()
     serializer_class = PlayersInTrialSerializer
     lookup_field = "id"
     permission_classes = [IsUser]
 
     @transaction.atomic
-    def create(self, request, *args, **kwargs):
+    def create(self, request):
+        """
+        Register a player for a trial and handle payment if required.
+
+        Args:
+            request: The HTTP request object.
+
+        Returns:
+            Response: The registration details or an error response.
+        """
+
         trial_id = request.data.get("trial")
         try:
             trial = Trial.objects.get(id=trial_id)
@@ -147,7 +215,7 @@ class PlayersInTrialViewSet(viewsets.ModelViewSet):
             return response.Response(data="Trial not found", status=status.HTTP_404)
         playercount = PlayersInTrial.objects.filter(trial=trial).count()
 
-        # if participant limit exceed current regsitered players return error
+        # Check if the participant limit is exceeded
         if trial.is_participant_limit and playercount >= trial.total_participant_limit:
             return response.Response(
                 data="Participant limit exceeded", status=status.HTTP_406_NOT_ACCEPTABLE
@@ -156,13 +224,14 @@ class PlayersInTrialViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # if there is no payement make registration complete
+        # Complete registration if no payment is required
         if not trial.is_registration_fee:
             self.perform_create(serializer)
             return response.Response(serializer.data, status=status.HTTP_201_CREATED)
 
         player_registration = serializer.save(payment_status="pending")
         try:
+            # Create a Stripe checkout session
             checkout_session = stripe.checkout.Session.create(
                 line_items=[
                     {
@@ -177,15 +246,12 @@ class PlayersInTrialViewSet(viewsets.ModelViewSet):
                     },
                 ],
                 mode="payment",
-
-                # payment successs page is set in frontend
                 success_url=f"{settings.SITE_URL}/payment_success?registrationId={player_registration.id}&trialId={trial.id}",
-                # payement failed page is set in frontend
                 cancel_url=f"{settings.SITE_URL}/payment_failed?registrationId={player_registration.id}&trialId={trial.id}", 
                 client_reference_id=player_registration.id,
             )
 
-            # if payment is needed the sesssion id is send to frontend for stripe checkout page
+           # Return the Stripe session ID to the frontend
             return response.Response(
                 {
                     "sessionId": checkout_session.id,
@@ -197,15 +263,24 @@ class PlayersInTrialViewSet(viewsets.ModelViewSet):
             print(
                 e, " exepriton in strip deleting user resgistraion", player_registration
             )
-            # if payement is cancelled delete the current regsitration
+            # Delete registration if payment fails
             player_registration.delete()
             return response.Response(
                 {"message": "error in stripe payment"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    # to list players joined in a trial
     def list_players_in_trial(self, request, trial_id=None):
+        """
+        List all players registered for a specific trial.
+
+        Args:
+            request: The HTTP request object.
+            trial_id: The ID of the trial.
+
+        Returns:
+            Response: A list of players registered for the trial.
+        """
         players = (
             self.queryset.filter(trial=trial_id)
             .prefetch_related("playersintrial")
@@ -214,8 +289,17 @@ class PlayersInTrialViewSet(viewsets.ModelViewSet):
         serialzer = self.get_serializer(players, many=True)
         return response.Response(serialzer.data, status=status.HTTP_200_OK)
 
-    # to udpate player status(by academy) and send notification mail
-    def partial_update(self, request, id, *args, **kwargs):
+    def partial_update(self, request, id):
+        """
+        Update the status of a player's registration and send a notification email.
+
+        Args:
+            request: The HTTP request object.
+            id: The ID of the player's registration.
+
+        Returns:
+            Response: A response indicating the success or failure of the update.
+        """
         player = PlayersInTrial.objects.get(id=id)
         if request.data["status"] == "selected":
             message = f"""We are excited to inform you that  you are selected in the 
@@ -236,7 +320,7 @@ class PlayersInTrialViewSet(viewsets.ModelViewSet):
         return response.Response(status=status.HTTP_204_NO_CONTENT)
 
     # to update payment satus and confirm registration
-    def update(self, request, id, *args, **kwargs):
+    def update(self, request, id):
         registration = PlayersInTrial.objects.get(id=id)
         registration.payment_status = "confirmed"
         registration.save()
@@ -245,12 +329,19 @@ class PlayersInTrialViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
-    # to delete player regsitraion if payement is not compelted
+    # delete player regsitraion if payement is not compelted
     def destroy(self, request, id, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
 
 
 class TrialHistory(generics.ListAPIView):
+    """
+    API view to get the history of trials for a player.
+
+    Attributes:
+        serializer_class: The serializer class for the TrialHistory model.
+        pagination_class: The pagination class for the results.
+    """
     serializer_class = TrialHistorySerializer
     permission_classes = [IsPlayer]
     queryset = PlayersInTrial.objects.all()

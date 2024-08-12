@@ -13,11 +13,17 @@ from .serializers import CommentSerializer, PostSerializer
 
 
 class PostViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for viewing and editing posts.
+    """
     queryset = Post.objects.all().select_related("user__userprofile")
     serializer_class = PostSerializer
     lookup_field = "id"
 
     def get_queryset(self):
+        """
+        Return a queryset of posts filtered by user ID or the current user.
+        """
         profile_id = self.request.GET.get("id", None)
         if profile_id and profile_id != "undefined" and profile_id != "null":
             return (
@@ -34,7 +40,10 @@ class PostViewSet(viewsets.ModelViewSet):
             .order_by("-id")
         )
 
-    def retrieve(self, request, id, *args, **kwargs):
+    def retrieve(self, request, id):
+        """
+        Return a queryset of posts filtered by profile ID or the current user.
+        """
         if Post.objects.filter(id=id).exists():
             post = (
                 Post.objects.filter(id=id)
@@ -52,7 +61,9 @@ class PostViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["POST"])
     def like(self, request, id=None):
-
+        """
+        Return a queryset of posts filtered by profile ID or the current user.
+        """
         try:
             post = Post.objects.get(id=id)
             user = request.user
@@ -76,6 +87,9 @@ class PostViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["POST"])
     def comment(self, request, id=None):
+        """
+        Comment on a specific Post. Supports replies to existing comments.
+        """
         try:
             post = Post.objects.get(id=id)
             parent_id = request.data.get("parent", None)
@@ -107,7 +121,10 @@ class PostViewSet(viewsets.ModelViewSet):
 
 
 class PlayerHomePageView(views.APIView):
-    def get(self, request, *args, **kwargs):
+    """
+    A view to retrieve the homepage data for a player, including posts, trials, and top academies.
+    """
+    def get(self, request):
         user = request.user
         page = int(request.query_params.get("page", 1))
         posts_per_page = 10
@@ -153,6 +170,7 @@ class PlayerHomePageView(views.APIView):
         else:
             posts = personal_posts.distinct().order_by("-created_at")
 
+        # Pagination
         start = 0
         end = ((page - 1) * posts_per_page) + posts_per_page
         paginated_posts = posts[start:end]
@@ -161,7 +179,7 @@ class PlayerHomePageView(views.APIView):
             paginated_posts, many=True, context={"request": request}
         )
 
-        # to show user detials in home page
+        # User detials for homepage
         user_details = {
             "username": user.username,
             "friends_count": user.friends.all().count(),
@@ -223,10 +241,14 @@ class PlayerHomePageView(views.APIView):
 
 
 class AcademyDashBoard(views.APIView):
-    def get(self, request, *args, **kwargs):
+    """
+    A view to retrieve the dashboard data for an academy.
+    """
+    def get(self, request):
         academy = request.user
         today = timezone.now()
 
+        # Trial statistics
         total_trials = Trial.objects.filter(academy=academy).count()
         completed_trials = Trial.objects.filter(
             academy=academy, is_active=True, trial_date__lt=today
@@ -238,6 +260,7 @@ class AcademyDashBoard(views.APIView):
             academy=academy, is_active=False
         ).count()
 
+        # Followers and post interactions
         followers = Follow.objects.filter(academy=academy).count()
 
         posts = Post.objects.filter(user=academy)

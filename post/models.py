@@ -4,6 +4,15 @@ from users.models import Users
 
 
 class Post(DataBaseModels):
+    """
+    Model representing a post created by a user.
+
+    Fields:
+    - user: Foreign key to the Users model representing the author of the post.
+    - content: Text field for the content of the post.
+    - image: ImageField for uploading images associated with the post.
+    - video: FileField for uploading videos associated with the post.
+    """
     user = models.ForeignKey(Users, on_delete=models.CASCADE, related_name="posts")
     content = models.TextField(null=True)
     image = models.ImageField(upload_to="post_images/", null=True, blank=True)
@@ -14,6 +23,15 @@ class Post(DataBaseModels):
 
 
 class Comment(DataBaseModels):
+    """
+    Model representing a comment on a post.
+
+    Fields:
+    - user: Foreign key to the Users model representing the author of the comment.
+    - post: Foreign key to the Post model representing the post being commented on.
+    - parent: Optional foreign key to another Comment, allowing for nested replies.
+    - content: Text field for the content of the comment.
+    """
     user = models.ForeignKey(Users, on_delete=models.CASCADE)
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="comments")
     parent = models.ForeignKey(
@@ -29,6 +47,13 @@ class Comment(DataBaseModels):
 
 
 class Like(DataBaseModels):
+    """
+    Model representing a like on a post by a user.
+
+    Fields:
+    - user: Foreign key to the Users model representing the user who liked the post.
+    - post: Foreign key to the Post model representing the post that was liked.
+    """
     user = models.ForeignKey(Users, on_delete=models.CASCADE)
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="likes")
 

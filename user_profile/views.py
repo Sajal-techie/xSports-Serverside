@@ -26,18 +26,35 @@ from .serializers.useracademy_serializer import UserAcademySerializer
 
 
 class ProfileData(views.APIView):
+    """
+    API View to get and update profile data of users.
+
+    Permissions:
+        - IsUser: User must be authenticated and have the correct permissions.
+    """
+
     permission_classes = [IsUser, IsAuthenticated]
 
-    # to get all data of a user from different tables
     def get(self, request, id=None):
+        """
+        Get the profile data of a user.
+
+        If `id` is provided, fetch the profile for the user with that `id`.
+        Otherwise, fetch the profile of the currently authenticated user.
+
+        Args:
+            request: The HTTP request object.
+            id (int, optional): The ID of the user to fetch.
+
+        Returns:
+            Response: The profile data in JSON format.
+        """
         try:
             if id:
                 user = Users.objects.get(id=id)
             else:
                 user = request.user
-            own_profile = (
-                True if user == request.user else False
-            )  # set a flag to identify user is viewing own profile or others profile
+            own_profile = user = request.user  # Determine if viewing own profile 
             cache_key = f"profile_{user.id}"
             user_data = cache.get(cache_key)
 
@@ -115,7 +132,7 @@ class ProfileData(views.APIView):
                     "user_academies": user_academy_data,
                 }
 
-                cache.set(cache_key, user_data, timeout=60 * 15)  # adding data to cache
+                cache.set(cache_key, user_data, timeout=60 * 15)  # Cache the user data
 
             user_data["own_profile"] = own_profile
             user_data["friend_status"] = friend_status
@@ -137,6 +154,16 @@ class ProfileData(views.APIView):
             )
 
     def post(self, request):
+        """
+        Update the profile data of the authenticated user.
+
+        Args:
+            request: The HTTP request object containing the data to update.
+
+        Returns:
+            Response: The result of the update operation.
+        """
+
         try:
             if isinstance(request.user, Users):
                 instance = request.user
@@ -149,7 +176,6 @@ class ProfileData(views.APIView):
                     profile = UserProfile.objects.get(user=instance)
                 else:
                     profile = UserProfile.objects.create(user=instance)
-                # sports = Sport.objects.filter(user=instance)
                 if "state" in request.data:
                     profile.state = request.data["state"]
                 if "district" in request.data:
@@ -171,7 +197,7 @@ class ProfileData(views.APIView):
                 instance.save()
                 profile.save()
                 cache_key = f"profile_{instance.id}"
-                cache.delete(cache_key)  # deleting cached data after updating
+                cache.delete(cache_key)  # Invalidate cache after update
                 return Response(
                     {
                         "status": status.HTTP_200_OK,
@@ -193,10 +219,25 @@ class ProfileData(views.APIView):
 
 
 class UpdatePhoto(views.APIView):
+    """
+    API View to update or delete profile and cover photos.
+
+    Permissions:
+        - IsUser: User must be authenticated and have the correct permissions.
+    """
     permission_classes = [IsUser, IsAuthenticated]
 
-    #  to update profile photo or cover photo
     def post(self, request, id):
+        """
+        Update profile or cover photo for the authenticated user.
+
+        Args:
+            request: The HTTP request object containing the photo data.
+            id (int): The ID of the user whose photo is to be updated.
+
+        Returns:
+            Response: The result of the update operation.
+        """
         try:
             user = request.user
             serializer = UserProfileSerializer(user, data=request.data)
@@ -236,7 +277,7 @@ class UpdatePhoto(views.APIView):
                     os.remove(oldpath)
 
                 cache_key = f"profile_{user.id}"
-                cache.delete(cache_key)  # deleting cached data
+                cache.delete(cache_key)  # Invalidate cache after update
                 return Response({"status": status.HTTP_200_OK, "message": message})
             return Response(
                 {
@@ -253,8 +294,17 @@ class UpdatePhoto(views.APIView):
                 }
             )
 
-    #  to delete profile photo or cover photo
     def delete(self, request, id):
+        """
+        Delete profile or cover photo for the authenticated user.
+
+        Args:
+            request: The HTTP request object containing the type of photo to delete.
+            id (int): The ID of the user whose photo is to be deleted.
+
+        Returns:
+            Response: The result of the delete operation.
+        """
         try:
             user = request.user
             data = request.data
@@ -280,7 +330,7 @@ class UpdatePhoto(views.APIView):
                 os.remove(oldpath)
 
             cache_key = f"profile_{user.id}"
-            cache.delete(cache_key)
+            cache.delete(cache_key)  # Invalidate cache after delete
             return Response({"status": status.HTTP_200_OK, "message": message})
         except Exception as e:
             print(e, "error deleting")
@@ -292,8 +342,13 @@ class UpdatePhoto(views.APIView):
             )
 
 
-# update about of user
 class UpdateAbout(generics.UpdateAPIView):
+    """
+    API View to update the 'about' section of a user's profile.
+
+    Permissions:
+        - IsUser: User must be authenticated and have the correct permissions.
+    """
     permission_classes = [IsUser, IsAuthenticated]
     serializer_class = AboutSerializer
 
@@ -306,13 +361,21 @@ class UpdateAbout(generics.UpdateAPIView):
         return super().perform_update(serializer)
 
 
-# CRUD academies of players
 class UserAcademyManage(viewsets.ModelViewSet):
+    """
+    Manage player academy  associations (academies joined by player).
+
+    Permissions:
+        - IsPlayer: Player must be authenticated and have the correct permissions.
+    """
     permission_classes = [IsPlayer, IsAuthenticated]
     serializer_class = UserAcademySerializer
     lookup_field = "id"
 
     def get_queryset(self):
+        """
+        Return the queryset of academies associated with the current player.
+        """
         return (
             UserAcademy.objects.filter(user=self.request.user)
             .select_related("academy")
@@ -320,57 +383,97 @@ class UserAcademyManage(viewsets.ModelViewSet):
         )
 
     def perform_update(self, serializer):
+        """
+        Delete the cached profile of the user after updating the user-academy.
+        """
         cache_key = f"profile_{self.request.user.id}"
         cache.delete(cache_key)
         return super().perform_update(serializer)
 
     def perform_create(self, serializer):
+        """
+        Delete the cached profile of the user after creating a new user-academy.
+        """
         cache_key = f"profile_{self.request.user.id}"
         cache.delete(cache_key)
         return super().perform_create(serializer)
 
     def perform_destroy(self, instance):
+        """
+        Delete the cached profile of the user after removing a user-academy.
+        """
         cache_key = f"profile_{self.request.user.id}"
         cache.delete(cache_key)
         return super().perform_destroy(instance)
 
 
 class AchievementManage(viewsets.ModelViewSet):
+    """
+    Manage user achievements.
+
+    Permissions:
+        - IsUser: User must be authenticated and have the correct permissions.
+    """
     permission_classes = [IsUser, IsAuthenticated]
     serializer_class = AchievementSerializer
     lookup_field = "id"
 
     def get_queryset(self):
+        """
+        Return the queryset of achievements for the current user.
+        """
         return Achievements.objects.filter(user=self.request.user).order_by("-id")
 
     def perform_update(self, serializer):
+        """
+        Delete the cached profile of the user after updating an achievement.
+        """
         cache_key = f"profile_{self.request.user.id}"
         cache.delete(cache_key)
         return super().perform_update(serializer)
 
     def perform_create(self, serializer):
+        """
+        Delete the cached profile of the user after creating a new achievement.
+        """
         cache_key = f"profile_{self.request.user.id}"
         cache.delete(cache_key)
         return super().perform_create(serializer)
 
     def perform_destroy(self, instance):
+        """
+        Delete the cached profile of the user after removing an achievement.
+        """
         cache_key = f"profile_{self.request.user.id}"
         cache.delete(cache_key)
         return super().perform_destroy(instance)
 
 
 class FriendRequestViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet to handle operation related to friend requests.
+
+    Permissions:
+        - IsPlayer: Player must be authenticated and have the correct permissions.
+    """
     queryset = FriendRequest.objects.all()
     serializer_class = FriendRequestSerializer
 
     def get_queryset(self):
+        """
+        Return the queryset of friend requests where the current user 
+        is the recipient and the request is not yet accepted.
+        """
         return (
             FriendRequest.objects.filter(to_user=self.request.user)
             .exclude(status="accepted")
             .select_related("to_user")
         )
 
-    def create(self, request, *args, **kwargs):
+    def create(self, request):
+        """
+        Create a new friend request and notify the recipient.
+        """
         data = request.data
         from_user = request.user
         to_user = Users.objects.get(id=data["to_user"])
@@ -409,7 +512,7 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
                 seen=False,
             )
 
-            # sent notification to request received user
+            # sent notification to request recipient
             channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
                 f"notification_{to_user.id}",
@@ -426,7 +529,10 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["get"])
-    def sent_request_list(self, *args, **kwargs):
+    def sent_request_list(self):
+        """
+        Return a list of friend requests sent by the current user that have not been accepted.
+        """
         sent_requests = (
             FriendRequest.objects.filter(from_user=self.request.user)
             .exclude(status="accepted")
@@ -437,6 +543,9 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def accept_request(self, request, id=None):
+        """
+        Accept a friend request and notify the sender.
+        """
         try:
             friend_request = FriendRequest.objects.get(
                 from_user=id, to_user=request.user
@@ -446,7 +555,7 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
                 data="Freind request not found", status=status.HTTP_404_NOT_FOUND
             )
 
-        friend_request.accept()  # making friends using model method
+        friend_request.accept()  # Use the model method to establish friendship
 
         notification_type = "friend_request_accept"
         text = f"{friend_request.to_user.username} accepted your friend request"
@@ -460,7 +569,8 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
             link=link,
             seen=False,
         )
-        # sent notifation to request sent user
+
+        # Send notification to the request sender
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
             f"notification_{friend_request.from_user.id}",
@@ -475,7 +585,7 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
             },
         )
 
-        friend_request.delete()  # deleting data from Friend Request Model
+        friend_request.delete()  # Remove the friend request
         cache_key1 = f"profile_{id}"
         cache_key2 = f"profile_{request.user.id}"
         cache.delete(cache_key1)
@@ -484,6 +594,9 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def cancel_request(self, request, id=None):
+        """
+        Cancel a sent friend request.
+        """
         to_user = Users.objects.get(id=id)
         try:
             friend_request = FriendRequest.objects.get(
@@ -503,10 +616,19 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
 
 
 class FriendViewSet(viewsets.ModelViewSet):
+    """
+    Manage friendships between users.
+
+    Permissions:
+        - IsPlayer: Player must be authenticated and have the correct permissions.
+    """
     serializer_class = FriendListSerializer
     lookup_field = "id"
 
     def get_queryset(self):
+        """
+        Return the queryset of friends for the current user.
+        """
         user = self.request.user
         return (
             user.friends.all()
@@ -514,7 +636,10 @@ class FriendViewSet(viewsets.ModelViewSet):
             .prefetch_related("sport_set")
         )
 
-    def destroy(self, request, id, *args, **kwargs):
+    def destroy(self, request, id):
+        """
+        Remove a friend from the current user's friend list.
+        """
         user = self.request.user
 
         try:
@@ -543,13 +668,25 @@ class FriendViewSet(viewsets.ModelViewSet):
 
 
 class FollowViewSet(viewsets.ModelViewSet):
+    """
+    Manage follow actions between players and academies.
+
+    Permissions:
+        - IsPlayer: Player must be authenticated and have the correct permissions.
+    """
     queryset = Follow.objects.all()
     serializer_class = FollowSerializer
 
     def get_queryset(self):
+        """
+        Return the queryset of follows for the current user.
+        """
         return Follow.objects.filter(player=self.request.user)
 
-    def create(self, request, *args, **kwargs):
+    def create(self, request):
+        """
+        Follow an academy and notify the academy.
+        """
         data = request.data
         player = request.user
         academy_id = data["academy"]
@@ -563,6 +700,7 @@ class FollowViewSet(viewsets.ModelViewSet):
 
         follow = Follow.objects.create(player=player, academy=academy)
 
+        # Notify the academy about the new follower
         notification_type = "follow"
         text = f"{player.username} started following you"
         link = f"/profile/{player.id}"
@@ -598,6 +736,10 @@ class FollowViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def unfollow(self, request):
+        """
+        Unfollow an academy.
+        """
+        
         player = request.user
         academy_id = request.data.get("academy", None)
         if not academy_id:

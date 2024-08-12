@@ -6,6 +6,11 @@ from .models import Comment, Like, Post
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Comment model.
+
+    Includes fields for user details, replies, and other comment-specific attributes.
+    """
     replies = serializers.SerializerMethodField()
     user = serializers.ReadOnlyField(source="user.username")
     profile_photo = serializers.ImageField(
@@ -29,12 +34,23 @@ class CommentSerializer(serializers.ModelSerializer):
         ]
 
     def get_replies(self, obj):
+        """
+        Return a list of replies for the comment.
+
+        If there are no replies, return an empty list.
+        """
         if obj.replies.exists():
             return CommentSerializer(obj.replies.all(), many=True).data
         return []
 
 
 class PostSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Post model.
+
+    Includes fields for user details, post content, and additional computed fields like likes count,
+    comments, and relationship status.
+    """
     user = serializers.ReadOnlyField(source="user.username")
     bio = serializers.ReadOnlyField(source="user.userprofile.bio", read_only=True)
     profile_photo = serializers.ImageField(
@@ -70,6 +86,12 @@ class PostSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
+        """
+        Create a new Post and send a notification to relevant users.
+
+        Determines the recipients based on whether the user is an academy or player and sends a notification
+        about the new post.
+        """
         user = self.context["request"].user
         post = Post.objects.create(user=user, **validated_data)
 
@@ -91,22 +113,48 @@ class PostSerializer(serializers.ModelSerializer):
         return post
 
     def get_likes_count(self, obj):
+        """
+        Return the count of likes for the post.
+        """
         return obj.likes.count()
 
     def get_is_liked_by_current_user(self, obj):
+        """
+        Check if the current user has liked the post.
+        """
         user = self.context["request"].user
         return obj.likes.filter(user=user).exists()
 
     def get_comments(self, obj):
+        """
+        Return a list of comments for the post, excluding replies to other comments.
+        """
         return CommentSerializer(
             obj.comments.filter(parent=None), many=True
-        ).data  # filtering comments using post(reverse relation)
+        ).data  
 
     def get_is_own_post(self, obj):
+        """
+        Check if the post was created by the current user.
+        """
         user = self.context["request"].user
         return obj.user == user
 
     def get_relationship_status(self, obj):
+        """
+        Determine the relationship status between the current user and the post author.
+        
+        Possible statuses:
+        - "self" if the current user is the author
+        - "following" if the current user follows the academy
+        - "follow" if the current user should follow the academy
+        - "follower" if the post author follows the current user
+        - "notfollower" if the post author does not follow the current user
+        - "received" if there's a received friend request
+        - "sent" if there's a sent friend request
+        - "friends" if the users are friends
+        - "none" if none of the above
+        """
         current_user = self.context["request"].user
         post_author = obj.user
 
@@ -144,6 +192,11 @@ class PostSerializer(serializers.ModelSerializer):
 
 
 class LikeSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Like model.
+
+    Includes fields for Like attributes related to a Post.
+    """
     class Meta:
         model = Like
         fields = ["id", "post", "user", "created_at", "updated_at"]
