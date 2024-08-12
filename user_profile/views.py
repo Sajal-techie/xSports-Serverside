@@ -201,7 +201,7 @@ class ProfileData(views.APIView):
                 return Response(
                     {
                         "status": status.HTTP_200_OK,
-                        "message": "User details updated successfully",
+                        "message": "User details Updated Successfully ...",
                     }
                 )
             else:
@@ -739,7 +739,7 @@ class FollowViewSet(viewsets.ModelViewSet):
         """
         Unfollow an academy.
         """
-        
+
         player = request.user
         academy_id = request.data.get("academy", None)
         if not academy_id:
