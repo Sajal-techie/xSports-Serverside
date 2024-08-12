@@ -12,7 +12,6 @@
 #         send_otp(instance.email)
 
 
-
 # def send_otp(email):
 #     try:
 #         print('in send amil')

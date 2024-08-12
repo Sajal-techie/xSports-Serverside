@@ -15,14 +15,36 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Chat',
+            name="Chat",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('message', models.TextField(null=True)),
-                ('thread_name', models.CharField(max_length=255, null=True)),
-                ('date', models.DateTimeField(auto_now_add=True)),
-                ('receiver', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='receive_message', to=settings.AUTH_USER_MODEL)),
-                ('sender', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='send_message', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("message", models.TextField(null=True)),
+                ("thread_name", models.CharField(max_length=255, null=True)),
+                ("date", models.DateTimeField(auto_now_add=True)),
+                (
+                    "receiver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="receive_message",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "sender",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="send_message",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
     ]

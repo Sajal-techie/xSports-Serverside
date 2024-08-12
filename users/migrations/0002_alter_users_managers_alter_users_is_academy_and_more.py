@@ -8,54 +8,89 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('users', '0001_initial'),
+        ("users", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterModelManagers(
-            name='users',
-            managers=[
-            ],
+            name="users",
+            managers=[],
         ),
         migrations.AlterField(
-            model_name='users',
-            name='is_academy',
+            model_name="users",
+            name="is_academy",
             field=models.BooleanField(default=False),
         ),
         migrations.AlterField(
-            model_name='users',
-            name='username',
+            model_name="users",
+            name="username",
             field=models.CharField(blank=True, max_length=255, null=True),
         ),
         migrations.CreateModel(
-            name='Sport',
+            name="Sport",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('sport_name', models.CharField(max_length=255)),
-                ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("sport_name", models.CharField(max_length=255)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.CreateModel(
-            name='UserProfile',
+            name="UserProfile",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('bio', models.TextField(blank=True, null=True)),
-                ('about', models.TextField(blank=True, null=True)),
-                ('state', models.CharField(blank=True, max_length=255, null=True)),
-                ('district', models.CharField(blank=True, max_length=255, null=True)),
-                ('profile_photo', models.ImageField(blank=True, null=True, upload_to='medias/')),
-                ('cover_photo', models.ImageField(blank=True, null=True, upload_to='medias/')),
-                ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("bio", models.TextField(blank=True, null=True)),
+                ("about", models.TextField(blank=True, null=True)),
+                ("state", models.CharField(blank=True, max_length=255, null=True)),
+                ("district", models.CharField(blank=True, max_length=255, null=True)),
+                (
+                    "profile_photo",
+                    models.ImageField(blank=True, null=True, upload_to="medias/"),
+                ),
+                (
+                    "cover_photo",
+                    models.ImageField(blank=True, null=True, upload_to="medias/"),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
     ]

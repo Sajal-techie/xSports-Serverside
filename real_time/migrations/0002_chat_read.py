@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('real_time', '0001_initial'),
+        ("real_time", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='chat',
-            name='read',
+            model_name="chat",
+            name="read",
             field=models.BooleanField(default=False),
         ),
     ]

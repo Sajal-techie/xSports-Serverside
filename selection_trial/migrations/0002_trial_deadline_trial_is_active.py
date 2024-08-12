@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('selection_trial', '0001_initial'),
+        ("selection_trial", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='trial',
-            name='deadline',
+            model_name="trial",
+            name="deadline",
             field=models.DateField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='trial',
-            name='is_active',
+            model_name="trial",
+            name="is_active",
             field=models.BooleanField(default=True),
         ),
     ]

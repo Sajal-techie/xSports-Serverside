@@ -15,23 +15,47 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='UserAcademy',
+            name="UserAcademy",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('start_month', models.CharField(blank=True, max_length=20, null=True)),
-                ('start_year', models.CharField(blank=True, max_length=20, null=True)),
-                ('end_month', models.CharField(blank=True, max_length=20, null=True)),
-                ('position', models.CharField(blank=True, max_length=20, null=True)),
-                ('is_current', models.BooleanField(default=False)),
-                ('location', models.CharField(blank=True, max_length=255, null=True)),
-                ('description', models.TextField()),
-                ('academy', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='academyDetails', to=settings.AUTH_USER_MODEL)),
-                ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='userDetails', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("start_month", models.CharField(blank=True, max_length=20, null=True)),
+                ("start_year", models.CharField(blank=True, max_length=20, null=True)),
+                ("end_month", models.CharField(blank=True, max_length=20, null=True)),
+                ("position", models.CharField(blank=True, max_length=20, null=True)),
+                ("is_current", models.BooleanField(default=False)),
+                ("location", models.CharField(blank=True, max_length=255, null=True)),
+                ("description", models.TextField()),
+                (
+                    "academy",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="academyDetails",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="userDetails",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
     ]

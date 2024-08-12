@@ -8,27 +8,49 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('user_profile', '0003_useracademy_sport'),
+        ("user_profile", "0003_useracademy_sport"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Achievements',
+            name="Achievements",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('title', models.CharField(blank=True, max_length=255, null=True)),
-                ('issued_by', models.CharField(blank=True, max_length=255, null=True)),
-                ('issued_month', models.CharField(blank=True, max_length=20, null=True)),
-                ('issued_year', models.CharField(blank=True, max_length=10, null=True)),
-                ('image', models.ImageField(blank=True, null=True, upload_to='images/')),
-                ('description', models.TextField(null=True)),
-                ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='user_achievements', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("title", models.CharField(blank=True, max_length=255, null=True)),
+                ("issued_by", models.CharField(blank=True, max_length=255, null=True)),
+                (
+                    "issued_month",
+                    models.CharField(blank=True, max_length=20, null=True),
+                ),
+                ("issued_year", models.CharField(blank=True, max_length=10, null=True)),
+                (
+                    "image",
+                    models.ImageField(blank=True, null=True, upload_to="images/"),
+                ),
+                ("description", models.TextField(null=True)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="user_achievements",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
     ]

@@ -8,13 +8,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('users', '0005_alter_academy_license'),
+        ("users", "0005_alter_academy_license"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='userprofile',
-            name='user',
-            field=models.OneToOneField(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='userprofile', to=settings.AUTH_USER_MODEL),
+            model_name="userprofile",
+            name="user",
+            field=models.OneToOneField(
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="userprofile",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

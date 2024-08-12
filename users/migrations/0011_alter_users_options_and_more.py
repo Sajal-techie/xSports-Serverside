@@ -6,17 +6,19 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('auth', '0012_alter_user_first_name_max_length'),
-        ('users', '0010_users_created_at_users_updated_at'),
+        ("auth", "0012_alter_user_first_name_max_length"),
+        ("users", "0010_users_created_at_users_updated_at"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='users',
+            name="users",
             options={},
         ),
         migrations.AddIndex(
-            model_name='users',
-            index=models.Index(fields=['username'], name='users_users_usernam_17aba2_idx'),
+            model_name="users",
+            index=models.Index(
+                fields=["username"], name="users_users_usernam_17aba2_idx"
+            ),
         ),
     ]
