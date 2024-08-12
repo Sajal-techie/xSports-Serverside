@@ -5,6 +5,7 @@ services:
     command: ["gunicorn", "--bind", ":8000", "serverside.wsgi:application"]
     volumes:
       - .:/app
+      - media_volume:/app/media/
     ports:
       - "8000:8000"
     depends_on:
@@ -28,18 +29,6 @@ services:
     networks:
       - serverside-network
 
-  # celery-beat:
-  #   build: .
-  #   command: ["celery", "-A", "serverside", "beat", "--loglevel=info"]
-  #   volumes:
-  #     - .:/app 
-  #     - .:/app
-  #   depends_on:
-  #     - db
-  #   env_file:
-  #     - .env
-  #   networks:
-  #     - serverside-network
 
   celery-worker:
     build: .
@@ -81,6 +70,7 @@ services:
 
 volumes:
   db_data:
+  media_volume:
 
 networks:
   serverside-network:
