@@ -54,7 +54,7 @@ class ProfileData(views.APIView):
                 user = Users.objects.get(id=id)
             else:
                 user = request.user
-            own_profile = user = request.user  # Determine if viewing own profile 
+            own_profile = (user == request.user)  # Determine if viewing own profile 
             cache_key = f"profile_{user.id}"
             user_data = cache.get(cache_key)
 
