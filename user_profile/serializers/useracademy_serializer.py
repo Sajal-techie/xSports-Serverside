@@ -1,6 +1,6 @@
-from rest_framework.serializers import ModelSerializer, Serializer
 from rest_framework import serializers
 from users.models import UserProfile, Users
+
 from ..models import UserAcademy
 
 
@@ -18,7 +18,7 @@ class AcademyDetailSerialiezer(serializers.ModelSerializer):
         fields = ["id", "username", "profile"]
 
 
-class UserAcademySerializer(ModelSerializer):
+class UserAcademySerializer(serializers.ModelSerializer):
     academy_details = AcademyDetailSerialiezer(
         source="academy", read_only=True, required=False
     )

@@ -1,6 +1,8 @@
-from rest_framework.serializers import ModelSerializer
-from ..models import Achievements
 import os
+
+from rest_framework.serializers import ModelSerializer
+
+from ..models import Achievements
 
 
 class AchievementSerializer(ModelSerializer):

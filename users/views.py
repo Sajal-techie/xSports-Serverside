@@ -1,22 +1,21 @@
-from rest_framework.response import Response
-from rest_framework.views import APIView
+from django.conf import settings
+from django.core.validators import validate_email
+from django.db.models import Count, Q
+from django.http import JsonResponse
+from real_time.models import Notification
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.core.validators import validate_email
-from django.http import JsonResponse
-from django.db.models import Q, Count
-from django.conf import settings
-from users.serializers.user_serializer import (
-    CustomUsersSerializer,
-    UserProfileSerializer,
-)
-from users.serializers.google_serializer import GoogleSignInSerializer
-from .models import Users, Academy
-from user_profile.models import FriendRequest, Follow
-from .task import send_otp
 from selection_trial.models import Trial
-from real_time.models import Notification
+from user_profile.models import Follow, FriendRequest
+from users.serializers.google_serializer import GoogleSignInSerializer
+from users.serializers.user_serializer import (CustomUsersSerializer,
+                                               UserProfileSerializer)
+
+from .models import Academy, Users
+from .task import send_otp
 
 
 class Signup(APIView):
@@ -25,16 +24,15 @@ class Signup(APIView):
 
         # validations
         errors = {}
-        if "email" in data:
-            if not data["email"]:
-                errors["email"] = "Email field is Required"
+        email = data.get("email", None)
+        if not email:
+            errors["email"] = "Email field is Required"
         else:
             try:
                 validate_email(email)
-            except:
+            except Exception:
                 errors["email"] = "Email is not Valid"
 
-        email = data["email"]
 
         if "is_academy" in data:
             if data["is_academy"] == "true":
@@ -271,6 +269,7 @@ class ResendOtp(APIView):
                 {"status": status.HTTP_200_OK, "message": "OTP sended successfully"}
             )
         except Exception as e:
+            print(e, 'error in resend otp')
             return Response(
                 {"status": status.HTTP_400_BAD_REQUEST, "message": "Error sending otp"}
             )

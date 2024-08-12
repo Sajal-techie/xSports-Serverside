@@ -1,8 +1,11 @@
-from rest_framework import serializers
-from .models import Trial, TrialRequirement, PlayersInTrial, PlayersInTrialDetails
-from user_profile.serializers.useracademy_serializer import AcademyDetailSerialiezer
 from real_time.task import send_notification
+from rest_framework import serializers
 from user_profile.models import Follow
+from user_profile.serializers.useracademy_serializer import \
+    AcademyDetailSerialiezer
+
+from .models import (PlayersInTrial, PlayersInTrialDetails, Trial,
+                     TrialRequirement)
 
 
 class TrialRequirementSerializer(serializers.ModelSerializer):

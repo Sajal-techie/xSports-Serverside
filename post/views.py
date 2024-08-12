@@ -1,13 +1,15 @@
-from rest_framework import viewsets, response, status, views
-from rest_framework.decorators import action
-from django.db.models import Q, Count, F, Sum
-from django.utils import timezone
 from datetime import timedelta
-from selection_trial.models import Trial, PlayersInTrial
-from .models import Post, Comment, Like
-from .serializers import PostSerializer, CommentSerializer
-from users.models import Users, UserProfile, Sport
-from user_profile.models import FriendRequest, Follow, Achievements
+
+from django.db.models import Count, F, Q, Sum
+from django.utils import timezone
+from rest_framework import response, status, views, viewsets
+from rest_framework.decorators import action
+from selection_trial.models import PlayersInTrial, Trial
+from user_profile.models import Achievements, Follow
+from users.models import Sport, UserProfile, Users
+
+from .models import Comment, Like, Post
+from .serializers import CommentSerializer, PostSerializer
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -80,7 +82,7 @@ class PostViewSet(viewsets.ModelViewSet):
             parent = None
             if (
                 parent_id
-            ):  # if the comment is reply of another comment then store the commnet as parent
+            ):  # if the comment is reply of a comment then store the commnet as parent
                 try:
                     parent = Comment.objects.get(id=parent_id, post=post)
                 except Comment.DoesNotExist:
@@ -236,7 +238,6 @@ class AcademyDashBoard(views.APIView):
             academy=academy, is_active=False
         ).count()
 
-        total_posts = Post.objects.filter(user=academy).count()
         followers = Follow.objects.filter(academy=academy).count()
 
         posts = Post.objects.filter(user=academy)

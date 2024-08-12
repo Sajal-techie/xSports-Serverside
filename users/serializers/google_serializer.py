@@ -1,7 +1,8 @@
-from rest_framework import serializers
-from ..utils import Google, register_social_user
 from django.conf import settings
+from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
+
+from ..utils import Google, register_social_user
 
 
 class GoogleSignInSerializer(serializers.Serializer):

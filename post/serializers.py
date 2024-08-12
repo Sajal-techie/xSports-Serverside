@@ -1,8 +1,8 @@
-from rest_framework import serializers
-from .models import Post, Comment, Like
-from user_profile.models import Follow, FriendRequest
-from real_time.models import Notification
 from real_time.task import send_notification
+from rest_framework import serializers
+from user_profile.models import Follow, FriendRequest
+
+from .models import Comment, Like, Post
 
 
 class CommentSerializer(serializers.ModelSerializer):

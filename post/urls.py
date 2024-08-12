@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import PostViewSet, PlayerHomePageView, AcademyDashBoard
+
+from .views import AcademyDashBoard, PlayerHomePageView, PostViewSet
 
 handle_like = PostViewSet.as_view({"post": "like"})
 

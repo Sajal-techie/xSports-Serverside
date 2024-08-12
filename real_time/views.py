@@ -1,9 +1,11 @@
-from rest_framework import generics, views, response, status, viewsets
-from django.db.models import Q
-from rest_framework.decorators import action
 from django.core.paginator import Paginator
-from .models import Chat, Users, Notification
-from .serializers import ChatSerializer, ChatListUserSerializer, NotificationSerializer
+from django.db.models import Q
+from rest_framework import generics, response, status, views, viewsets
+from rest_framework.decorators import action
+
+from .models import Chat, Notification, Users
+from .serializers import (ChatListUserSerializer, ChatSerializer,
+                          NotificationSerializer)
 
 
 class ChatView(generics.ListCreateAPIView):

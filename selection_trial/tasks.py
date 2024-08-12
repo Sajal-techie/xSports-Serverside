@@ -1,6 +1,6 @@
 from celery import shared_task
-from django.core.mail import send_mail
 from django.conf import settings
+from django.core.mail import send_mail
 
 
 # to send notification mail if trial status is updated by academy
@@ -13,7 +13,6 @@ def send_status_mail(self, email, trial_name, message):
         send_mail(subject, message, email_from, [email])
     except Exception as e:
         print(f"Error sending status updation mail: {str(e)}")
-
 
 
 #  to send cancellation mail to users if academy cancelled trial

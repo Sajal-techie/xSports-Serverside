@@ -1,20 +1,19 @@
-from rest_framework import viewsets, views, response, status, generics
-from rest_framework.decorators import action
 from datetime import date
-from django.db.models import Count, Q
-from django.conf import settings
-from django.db import transaction
+
 import stripe
 import stripe.error
-from .models import Trial, PlayersInTrial
-from .serializers import (
-    TrialSerializer,
-    PlayersInTrialSerializer,
-    TrialHistorySerializer,
-)
-from common.custom_permission_classes import IsAcademy, IsPlayer, IsUser, IsAdmin
-from .tasks import send_status_mail, send_trial_cancellation_mail
 from common.custom_pagination_class import StandardResultsSetPagination
+from common.custom_permission_classes import (IsAcademy, IsAdmin, IsPlayer,
+                                              IsUser)
+from django.conf import settings
+from django.db import transaction
+from django.db.models import Count, Q
+from rest_framework import generics, response, status, viewsets
+
+from .models import PlayersInTrial, Trial
+from .serializers import (PlayersInTrialSerializer, TrialHistorySerializer,
+                          TrialSerializer)
+from .tasks import send_status_mail, send_trial_cancellation_mail
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 webhook_secret = settings.STRIPE_WEBHOOK_SECRET
@@ -144,6 +143,7 @@ class PlayersInTrialViewSet(viewsets.ModelViewSet):
         try:
             trial = Trial.objects.get(id=trial_id)
         except Exception as e:
+            print(e, 'trial not found')
             return response.Response(data="Trial not found", status=status.HTTP_404)
         playercount = PlayersInTrial.objects.filter(trial=trial).count()
 
@@ -177,8 +177,11 @@ class PlayersInTrialViewSet(viewsets.ModelViewSet):
                     },
                 ],
                 mode="payment",
-                success_url=f"{settings.SITE_URL}/payment_success?registrationId={player_registration.id}&trialId={trial.id}",  # payment successs page is set in frontend
-                cancel_url=f"{settings.SITE_URL}/payment_failed?registrationId={player_registration.id}&trialId={trial.id}",  # payement failed page is set in frontend
+
+                # payment successs page is set in frontend
+                success_url=f"{settings.SITE_URL}/payment_success?registrationId={player_registration.id}&trialId={trial.id}",
+                # payement failed page is set in frontend
+                cancel_url=f"{settings.SITE_URL}/payment_failed?registrationId={player_registration.id}&trialId={trial.id}", 
                 client_reference_id=player_registration.id,
             )
 
@@ -216,13 +219,15 @@ class PlayersInTrialViewSet(viewsets.ModelViewSet):
         player = PlayersInTrial.objects.get(id=id)
         if request.data["status"] == "selected":
             message = f"""We are excited to inform you that  you are selected in the 
-                        {player.trial.name}'s conducted by {player.trial.academy.username} academy ,
+                        {player.trial.name}'s conducted by {player.trial.academy.username} 
+                        academy ,
                         further information will be provided please stay tuned"""
         else:
             message = f"""We are sorry to inform that  you are not seleted in the 
-                        {player.trial.name}'s conducted by {player.trial.academy.username} academy , 
+                        {player.trial.name}'s conducted by {player.trial.academy.username} 
+                        academy ,
                         Thank you for you participation . """
-        
+ 
         send_status_mail.delay(
             email=player.email, trial_name=player.trial.name, message=message
         )

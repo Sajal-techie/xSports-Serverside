@@ -1,14 +1,7 @@
-from django.urls import path, include
-from .views import (
-    Signup,
-    VerifyOtp,
-    Login,
-    Logout,
-    ResendOtp,
-    ForgetPassword,
-    GoogleSignIn,
-    SearchResult,
-)
+from django.urls import path
+
+from .views import (ForgetPassword, GoogleSignIn, Login, Logout, ResendOtp,
+                    SearchResult, Signup, VerifyOtp)
 
 urlpatterns = [
     path("signup", Signup.as_view(), name="signup"),

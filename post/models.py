@@ -1,6 +1,6 @@
+from common.base_models import DataBaseModels
 from django.db import models
 from users.models import Users
-from common.base_models import DataBaseModels
 
 
 class Post(DataBaseModels):

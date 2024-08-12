@@ -1,7 +1,5 @@
 from django.urls import path
-from rest_framework import routers
 
-router = routers.DefaultRouter()
 from .views import *
 
 sent_request_list = FriendRequestViewSet.as_view({"get": "sent_request_list"})

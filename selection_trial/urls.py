@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import *
+
+from .views import TrialViewSet, PlayersInTrialViewSet, TrialHistory
 
 players_in_trial_list = PlayersInTrialViewSet.as_view({"get": "list_players_in_trial"})
 trial_player_details = TrialViewSet.as_view({"get": "player_detials_in_trial"})

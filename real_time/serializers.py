@@ -1,7 +1,8 @@
-from rest_framework import serializers
 from django.db.models import Q
-from .models import Chat, Users, Notification
+from rest_framework import serializers
 from user_profile.serializers.connection_serializer import FriendListSerializer
+
+from .models import Chat, Notification, Users
 
 
 class ChatSerializer(serializers.ModelSerializer):

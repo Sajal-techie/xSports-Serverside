@@ -1,7 +1,6 @@
-from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from ..models import FriendRequest, Follow
-from users.serializers.user_serializer import CustomUsersSerializer
+from rest_framework import serializers
+from ..models import Follow, FriendRequest
 
 User = get_user_model()
 

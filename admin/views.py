@@ -1,23 +1,21 @@
-from rest_framework.generics import ListAPIView
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.db.models import Q, Count
-from rest_framework import status
-from django.conf import settings
 from datetime import timedelta
+
+from django.conf import settings
+from django.db.models import Q
 from django.utils import timezone
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from users.serializers.user_serializer import (
-    CustomUsersSerializer,
-    SportSerializer,
-    Academyserializer,
-    UserProfileSerializer,
-)
-from users.models import Users, Sport, UserProfile, Academy
-from .task import send_alert
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from common.custom_permission_classes import IsAdmin, IsPlayer
-from selection_trial.models import Trial, PlayersInTrial
 from post.models import Post
+from selection_trial.models import PlayersInTrial, Trial
+from users.models import Academy, Sport, UserProfile, Users
+from users.serializers.user_serializer import (Academyserializer,
+                                               SportSerializer,
+                                               UserProfileSerializer)
+
+from .task import send_alert
 
 
 class AcademyManage(APIView):
@@ -57,7 +55,7 @@ class AcademyManage(APIView):
 class ToggleIsCertified(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
-    def post(self,request,id):
+    def post(self, request, id):
         try:
             value = request.data.get("value", None)
             user = Users.objects.get(id=id)
@@ -65,7 +63,7 @@ class ToggleIsCertified(APIView):
             if value:
                 if value == "approve":
                     subject = "Your account has Approved by Admin"
-                    message = f" Now you can login http://localhost:5173/"
+                    message = f" Now you can login {settings.SITE_URL} to xSports"
                     academy.is_certified = True
                 else:
                     subject = "Your account has been Denied by admin"
@@ -140,6 +138,7 @@ class ToggleActive(APIView):
                 {"status": status.HTTP_200_OK, "message": "Updated successfully"}
             )
         except Exception as e:
+            print(e,'user acitvaiton failed')
             return Response(
                 {"status": status.HTTP_400_BAD_REQUEST, "message": "Updation failed"}
             )
@@ -210,7 +209,7 @@ class DashboardViewSet(APIView):
         ]
 
         total_posts = Post.objects.count()
-        # fetching total count for graph
+        # fetching total count for visualising in graph
         stats = {
             "totalAcademies": total_academies,
             "totalPlayers": total_players,
@@ -290,7 +289,7 @@ class AccountsView(APIView):
             else:
                 academy_payments[academy.id] = {
                     "academy_id": academy.id,
-                    "academy_name": academy.username,  # Assuming username is the academy name
+                    "academy_name": academy.username, 
                     "total_amount": fee,
                 }
 

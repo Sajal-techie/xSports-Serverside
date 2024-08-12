@@ -1,12 +1,13 @@
+from django.conf import settings
+from django.contrib.auth import authenticate
 from google.auth.transport import requests
 from google.oauth2 import id_token
-from .models import Users, UserProfile, Sport
-from django.contrib.auth import authenticate
-from django.conf import settings
-from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
+from real_time.models import Notification
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from users.serializers.user_serializer import UserProfileSerializer
-from real_time.models import Notification
+
+from .models import UserProfile, Users
 
 
 class Google:

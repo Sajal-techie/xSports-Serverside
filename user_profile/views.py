@@ -1,30 +1,28 @@
-from rest_framework import viewsets, views, status, generics
-from rest_framework.decorators import action
-from rest_framework.response import Response
 import os
+
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from common.custom_permission_classes import (IsPlayer,
+                                              IsUser)
 from django.core.cache import cache
 from django.db.models import Q
+from real_time.models import Notification
+from rest_framework import generics, status, views, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
+from rest_framework.response import Response
+from users.models import Sport, UserProfile, Users
+from users.serializers.user_serializer import (CustomUsersSerializer,
+                                               SportSerializer,
+                                               UserProfileSerializer)
 
-from users.models import UserProfile, Sport, Academy, Users
-from users.serializers.user_serializer import (
-    CustomUsersSerializer,
-    UserProfileSerializer,
-    SportSerializer,
-)
-from .serializers.useracademy_serializer import UserAcademySerializer
+from .models import Achievements, Follow, FriendRequest, UserAcademy
 from .serializers.about_serializer import AboutSerializer
 from .serializers.achievement_serializer import AchievementSerializer
-from .serializers.connection_serializer import (
-    FriendRequestSerializer,
-    FollowSerializer,
-    FriendListSerializer,
-)
-from .models import UserAcademy, Achievements, FriendRequest, Follow
-from common.custom_permission_classes import IsPlayer, IsAcademy, IsUser, IsAdmin
-from real_time.models import Notification
+from .serializers.connection_serializer import (FollowSerializer,
+                                                FriendListSerializer,
+                                                FriendRequestSerializer)
+from .serializers.useracademy_serializer import UserAcademySerializer
 
 
 class ProfileData(views.APIView):
@@ -402,7 +400,7 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
             notification_type = "friend_request"
             text = f"{from_user.username} sent you a friend request"
             link = f"/profile/{from_user.id}"
-            notification = Notification.objects.create(
+            Notification.objects.create(
                 receiver=to_user,
                 sender=from_user,
                 notification_type=notification_type,
@@ -649,7 +647,6 @@ class FriendSuggestion(views.APIView):
         )
 
         suggestions = suggestions.exclude(Q(id=user.id) | Q(id__in=friends))
-
 
         serializer = FriendListSerializer(suggestions[:7], many=True)
 

@@ -1,7 +1,6 @@
-from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
-from users.models import Users, Sport, UserProfile, Academy
-from django.conf import settings
+from rest_framework.serializers import ModelSerializer
+from users.models import Academy, Sport, UserProfile, Users
 
 
 class SportSerializer(ModelSerializer):

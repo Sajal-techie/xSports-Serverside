@@ -1,9 +1,9 @@
 import json
-from channels.generic.websocket import AsyncWebsocketConsumer
+
 from channels.db import database_sync_to_async
-from django.utils import timezone
-from django.conf import settings
-from .models import Chat, Users, Notification
+from channels.generic.websocket import AsyncWebsocketConsumer
+
+from .models import Chat, Notification, Users
 from .serializers import ChatSerializer
 
 
@@ -24,7 +24,6 @@ class PersonalChatConsumer(AsyncWebsocketConsumer):
         message = data["message"]
         sender_id = data["sender"]
         receiver_id = data["receiver"]
-
 
         sender = await self.get_user(sender_id)
         receiver = await self.get_user(receiver_id)
@@ -62,7 +61,6 @@ class PersonalChatConsumer(AsyncWebsocketConsumer):
                 text=text,
                 notification_type=notification_type,
             )
-        
 
     async def chat_message(self, event):
         message_data = event["message_data"]
@@ -73,6 +71,7 @@ class PersonalChatConsumer(AsyncWebsocketConsumer):
         try:
             return Users.objects.get(id=user_id)
         except Exception as e:
+            print(e, 'User does not exist')
             return None
 
     @database_sync_to_async
