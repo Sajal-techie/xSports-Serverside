@@ -54,5 +54,5 @@ jobs:
         ssh -o StrictHostKeyChecking=no -i  private_key ${USER}@${HOST} '
           cd xsports &&
           docker compose pull sajal7/servserside-web &&
-          docker compose up -d &&
+          docker compose up -d 
         '
