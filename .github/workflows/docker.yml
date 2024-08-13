@@ -55,6 +55,6 @@ jobs:
           cd xsports &&
           docker compose pull &&
           docker compose up -d &&
-          sudo systemctl restart nginx &&
-          echo $USER
+          docker image prune -f &&
+          sudo systemctl restart nginx 
         '
