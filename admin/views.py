@@ -70,9 +70,9 @@ class AcademyManage(APIView):
         # Return response with appropriate status
         if not user_data:
             return Response(
-                {"academy": user_data, "status": status.HTTP_204_NO_CONTENT}
+                {"academy": user_data},status.HTTP_204_NO_CONTENT
             )
-        return Response({"academy": user_data, "status": status.HTTP_200_OK})
+        return Response({"academy": user_data},status.HTTP_200_OK)
 
 
 class ToggleIsCertified(APIView):

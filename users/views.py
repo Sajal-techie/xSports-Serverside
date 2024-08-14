@@ -70,7 +70,8 @@ class Signup(APIView):
         # If there are validation errors, return them in the response
         if errors:
             return Response(
-                {"status": status.HTTP_400_BAD_REQUEST, "message": errors.values()}
+                {"message": errors.values()},
+                status=status.HTTP_400_BAD_REQUEST
             )
         
         # Serialize user data and save the new user
@@ -83,9 +84,8 @@ class Signup(APIView):
             send_otp.delay(email)
             return Response(
                 {
-                    "status": status.HTTP_200_OK,
                     "message": "Registration Successful, Check Email For Verification",
-                }
+                },status.HTTP_200_OK
             )
         except Exception as e:
             print(str(e), "exeption errorrrrr")
@@ -109,9 +109,8 @@ class VerifyOtp(APIView):
             if not user.otp:
                 return Response(
                     {
-                        "status": status.HTTP_400_BAD_REQUEST,
                         "message": "OTP Expired try resending otp",
-                    }
+                    },status.HTTP_400_BAD_REQUEST
                 )
             
             # Verify the OTP
@@ -120,18 +119,19 @@ class VerifyOtp(APIView):
                 user.is_verified = True
                 user.save()
                 return Response(
-                    {"status": status.HTTP_200_OK, "message": "OTP Verified"}
+                    {"message": "OTP Verified"},
+                    status=status.HTTP_200_OK
                 )
             return Response(
-                {"status": status.HTTP_400_BAD_REQUEST, "message": "Invalid OTP"}
+                {"message": "Invalid OTP"},
+                status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
             print(e, "verify OTP error")
             return Response(
                 {
-                    "status": status.HTTP_400_BAD_REQUEST,
                     "message": "Your token has been expired try login again ",
-                }
+                },status.HTTP_400_BAD_REQUEST
             )
 
 
@@ -151,16 +151,14 @@ class Login(APIView):
         if email is None:
             return Response(
                 {
-                    "status": status.HTTP_400_BAD_REQUEST,
                     "message": "email field is required",
-                }
+                },status=status.HTTP_400_BAD_REQUEST
             )
         if password is None:
             return Response(
                 {
-                    "status": status.HTTP_400_BAD_REQUEST,
                     "message": "password field is required",
-                }
+                },status=status.HTTP_400_BAD_REQUEST
             )
         
         # Determine if the user is an academy or admin
@@ -173,9 +171,8 @@ class Login(APIView):
         if not Users.objects.filter(email=email).exists():
             return Response(
                 {
-                    "status": status.HTTP_400_BAD_REQUEST,
                     "message": "Email Does Not Exists",
-                }
+                },status=status.HTTP_400_BAD_REQUEST
             )
         
         user = Users.objects.get(email=email)
@@ -183,45 +180,42 @@ class Login(APIView):
         # Check if the password is correct
         if not user.check_password(password):
             return Response(
-                {"status": status.HTTP_400_BAD_REQUEST, "message": "Invalid Password"}
+                {"message": "Invalid Password"},
+                status=status.HTTP_400_BAD_REQUEST
             )
         
         # Check if an admin is trying to log in as a regular user or vice versa
         if (not is_staff and user.is_superuser) or (user.is_staff and not is_staff):
             return Response(
                 {
-                    "status": status.HTTP_400_BAD_REQUEST,
                     "message": "Admin cannot loggin as user",
-                }
+                },status=status.HTTP_400_BAD_REQUEST
             )
         if is_staff and not user.is_staff:
             return Response(
                 {
-                    "status": status.HTTP_400_BAD_REQUEST,
                     "message": "You are not an admin ",
-                }
+                },status=status.HTTP_400_BAD_REQUEST
             )
         
         # Check if the user account is active
         if not user.is_active:
             return Response(
-                {"status": status.HTTP_400_BAD_REQUEST, "message": "You are blocked"}
+                { "message": "You are blocked"},status=status.HTTP_400_BAD_REQUEST
             )
         
         # Ensure the academy/user if logging in with the correct role
         if user.is_academy and not is_academy:
             return Response(
                 {
-                    "status": status.HTTP_400_BAD_REQUEST,
                     "message": "You are signed in as acadmey try academy login",
-                }
+                },status=status.HTTP_400_BAD_REQUEST
             )
         if not user.is_academy and is_academy:
             return Response(
                 {
-                    "status": status.HTTP_400_BAD_REQUEST,
                     "message": "You are signed in as player try player login",
-                }
+                },status=status.HTTP_400_BAD_REQUEST
             )
 
         # Determine user role
@@ -247,7 +241,8 @@ class Login(APIView):
         if not user.is_verified:
             send_otp.delay(email)
             return Response(
-                {"status": status.HTTP_403_FORBIDDEN, "message": "You are not verified"}
+                {"message": "You are not verified"},
+                status=status.HTTP_403_FORBIDDEN
             )
         
         # Check academy certification if the user if an academy
@@ -256,22 +251,21 @@ class Login(APIView):
             if not academy.is_certified:
                 return Response(
                     {
-                        "status": status.HTTP_400_BAD_REQUEST,
                         "message": "You are not approved by admin ",
-                    }
+                    },status=status.HTTP_400_BAD_REQUEST
                 )
 
         # Get user's profile photo and notification count
         profile_photo = UserProfileSerializer(user.userprofile).data.get(
             "profile_photo", None
-        )
+        ) if hasattr(user, 'userprofile') else None
+
         notification_count = Notification.objects.filter(
             receiver=user, seen=False
         ).count()
 
         return Response(
             {
-                "status": status.HTTP_200_OK,
                 "message": "Login Successful",
                 "user": user.username,
                 "role": role,
@@ -279,7 +273,8 @@ class Login(APIView):
                 "user_id": user.id,
                 "profile_photo": profile_photo,
                 "notification_count": notification_count,
-            }
+            },
+            status=status.HTTP_200_OK
         )
 
 
@@ -323,12 +318,13 @@ class ResendOtp(APIView):
             email = request.data["email"]
             send_otp.delay(email)
             return Response(
-                {"status": status.HTTP_200_OK, "message": "OTP sended successfully"}
+                {"message": "OTP sended successfully"},status=status.HTTP_200_OK
+
             )
         except Exception as e:
             print(e, 'error in resend otp')
             return Response(
-                {"status": status.HTTP_400_BAD_REQUEST, "message": "Error sending otp"}
+                {"message": "Error sending otp"},status=status.HTTP_400_BAD_REQUEST 
             )
 
 
@@ -354,37 +350,33 @@ class ForgetPassword(APIView):
                     user.save()
                     return Response(
                         {
-                            "status": status.HTTP_200_OK,
                             "message": "Password Resetted successfully",
-                        }
+                        },status=status.HTTP_200_OK
                     )
                 if Users.objects.filter(email=email).exists():
                     send_otp.delay(email)
                     return Response(
-                        {"status": status.HTTP_200_OK, "message": "Email is valid"}
+                        {"message": "Email is valid"},status=status.HTTP_200_OK
                     )
             return Response(
                 {
-                    "status": status.HTTP_400_BAD_REQUEST,
                     "message": "Email is not valid, Try signin",
-                }
+                },status=status.HTTP_400_BAD_REQUEST
             )
         except Users.DoesNotExist as e:
             print(e, "does not exist")
             return Response(
                 {
-                    "status": status.HTTP_400_BAD_REQUEST,
                     "message": "Account does not exist",
-                }
+                }, status=status.HTTP_400_BAD_REQUEST,
             )
 
         except Exception as e:
             print(e, "error")
             return Response(
                 {
-                    "status": status.HTTP_400_BAD_REQUEST,
                     "message": "Internal Server Error",
-                }
+                },status=status.HTTP_400_BAD_REQUEST
             )
 
 
@@ -530,4 +522,4 @@ class SearchResult(APIView):
             suggestions.sort(key=lambda x: x["count"], reverse=True)
             return JsonResponse(suggestions, safe=False)
 
-        return JsonResponse({"message": "No query provided."}, status=400)
+        return JsonResponse({"message": "No query provided."}, status=status.HTTP_200_OK)

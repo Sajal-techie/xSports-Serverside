@@ -141,16 +141,16 @@ class ProfileData(views.APIView):
                     followers  # add followers count with responce if user is academy
                 )
 
-            return Response({"status": status.HTTP_200_OK, "user_details": user_data})
+            return Response({"user_details": user_data},status=status.HTTP_200_OK)
         except Users.DoesNotExist as e:
             print(e, "user does not exist")
             return Response(
-                {"status": status.HTTP_404_NOT_FOUND, "message": "User does not exist"}
+                {"message": "User does not exist"},status.HTTP_404_NOT_FOUND
             )
         except Exception as e:
             print(e, "error in getting userdata")
             return Response(
-                {"status": status.HTTP_400_BAD_REQUEST, "message": "server error !..."}
+                {"message": "server error !..."},status.HTTP_400_BAD_REQUEST
             )
 
     def post(self, request):
@@ -200,21 +200,19 @@ class ProfileData(views.APIView):
                 cache.delete(cache_key)  # Invalidate cache after update
                 return Response(
                     {
-                        "status": status.HTTP_200_OK,
                         "message": "User details Updated Successfully ...",
                     }
                 )
             else:
                 return Response(
                     {
-                        "status": status.HTTP_400_BAD_REQUEST,
                         "message": "service not available",
-                    }
+                    },status.HTTP_400_BAD_REQUEST,
                 )
         except Exception as e:
             print(e)
             return Response(
-                {"status": status.HTTP_400_BAD_REQUEST, "message": "some error !..."}
+                {"message": "some error !..."},status.HTTP_400_BAD_REQUEST
             )
 
 
@@ -281,17 +279,15 @@ class UpdatePhoto(views.APIView):
                 return Response({"status": status.HTTP_200_OK, "message": message})
             return Response(
                 {
-                    "status": status.HTTP_400_BAD_REQUEST,
                     "message": "photo updation failed ",
-                }
+                },status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
             print(e, "erro in uplaod image")
             return Response(
                 {
-                    "status": status.HTTP_400_BAD_REQUEST,
                     "message": "Photo updation failed",
-                }
+                },status.HTTP_400_BAD_REQUEST
             )
 
     def delete(self, request, id):
@@ -321,9 +317,8 @@ class UpdatePhoto(views.APIView):
             else:
                 return Response(
                     {
-                        "status": status.HTTP_400_BAD_REQUEST,
                         "message": "No valid data photo deletion Failed",
-                    }
+                    },status.HTTP_400_BAD_REQUEST
                 )
             profile.save()
             if oldpath and os.path.exists(oldpath):
@@ -336,9 +331,8 @@ class UpdatePhoto(views.APIView):
             print(e, "error deleting")
             return Response(
                 {
-                    "status": status.HTTP_400_BAD_REQUEST,
                     "message": "Photo deletion failed",
-                }
+                },status.HTTP_400_BAD_REQUEST
             )
 
 
