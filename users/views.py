@@ -27,7 +27,8 @@ class Signup(APIView):
     email for verification.
     """
     def post(self, request):
-        data = request.data
+        data = request.data.copy()
+        print(data, 'data')
 
         # Initialize an empty dictionary for validation errors
         errors = {}
@@ -42,7 +43,7 @@ class Signup(APIView):
             except Exception:
                 errors["email"] = "Email is not Valid"
 
-        # If the user is an academy, set the 'sport' field
+        # If the user is an academy, set the 'sport' field    
         if "is_academy" in data:
             if data["is_academy"] == "true":
                 data.setlist("sport", request.data.getlist("sport[]", []))
@@ -60,7 +61,7 @@ class Signup(APIView):
             errors["dob"] = "Date of birth is required"
         if "password" in data and not data["password"]:
             errors["password"] = "Password is required"
-        if "license" in data and not data["license"]:
+        if (data.get("is_academy",None) == "true" and "license" not in data) or  ("license" in data and not data["license"]) :
             errors["license"] = "License is required"
 
         # Check if an account with the provided email already exists
@@ -84,7 +85,7 @@ class Signup(APIView):
             send_otp.delay(email)
             return Response(
                 {
-                    "message": "Registration Successful, Check Email For Verification",
+                    "message": "Registration Successfull, Check Email For Verification",
                 },status.HTTP_200_OK
             )
         except Exception as e:
@@ -103,7 +104,27 @@ class VerifyOtp(APIView):
             data = request.data
             email = data["email"] if "email" in data else None
             otp = data["otp"] if "otp" in data else None
+            print(email, data, 'email data')
+            if email is None:
+                return Response(
+                    {
+                    "message": "Email is required"
+                    },status=status.HTTP_400_BAD_REQUEST
+                )
+            
             user = Users.objects.get(email=email)
+            if user.is_verified:
+                return Response(
+                    {
+                        "message": "Already verfied Try logging in again"
+                    }
+                )
+            if otp is None:
+                return Response(
+                    {
+                    "message": "OTP is required"
+                    },status=status.HTTP_400_BAD_REQUEST
+                )
 
             # Check if the OTP has expired
             if not user.otp:
@@ -300,7 +321,7 @@ class Logout(APIView):
     This view invalidates the user's JWT tokens upon logout.
     """
     def post(self, request):
-        refresh_token = request.data.get("refresh")
+        refresh_token = request.data.get("refresh", None)
         if refresh_token:
             token = RefreshToken(refresh_token)
             token.blacklist()
@@ -339,7 +360,11 @@ class ForgetPassword(APIView):
     """
     def post(self, request):
         try:
-            if "email" in request.data:
+            if "email" not in request.data:
+                return Response({
+                    "message": "Email is required"
+                },status=status.HTTP_400_BAD_REQUEST)
+            else:
                 email = request.data["email"]
 
                 # Check if the request includes a new password
