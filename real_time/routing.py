@@ -1,6 +1,6 @@
 from django.urls import path, re_path
 
-from . import consumers
+from real_time import consumers
 
 websocket_urlpatterns = [
     re_path(

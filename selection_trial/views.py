@@ -104,7 +104,7 @@ class TrialViewSet(viewsets.ModelViewSet):
         ).select_related("academy")
         return queryset
 
-    def retrieve(self,request):
+    def retrieve(self,request, id):
         """
         Retrieve a specific trial by its ID.
 
@@ -113,7 +113,7 @@ class TrialViewSet(viewsets.ModelViewSet):
             id: The ID of the trial to retrieve.
 
         Returns:
-            response.Response: The trial details or an error response.
+            response: The trial details or an error response.
         """
         try:
             trial = (
@@ -136,7 +136,7 @@ class TrialViewSet(viewsets.ModelViewSet):
             id: The ID of the trial to delete.
 
         Returns:
-            response.Response: A response indicating the success or failure of the operation.
+            response: A response indicating the success or failure of the operation.
         """
 
         reason = request.query_params.get("reason", None)
@@ -161,7 +161,7 @@ class TrialViewSet(viewsets.ModelViewSet):
             id: The ID of the trial.
 
         Returns:
-            response.Response: The player details or a no-content response if not registered.
+            response: The player details or a no-content response if not registered.
         """
         user = request.user
         if not PlayersInTrial.objects.filter(player=user, trial=id).exists():

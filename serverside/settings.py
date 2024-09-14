@@ -42,6 +42,7 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = "users.Users"
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -49,7 +50,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
     "users.middleware.jwt_authorization_middleware.JWTAuthenticationMiddleware",
 ]
 
@@ -79,7 +79,7 @@ DATABASES = {
         "NAME": os.environ.get("DB_NAME"),
         "USER": os.environ.get("DB_USER"),
         "PASSWORD": os.environ.get("DB_PASSWORD"),
-        "HOST": "localhost",  # docker db host name
+        "HOST": "db",  # docker db host name
         "PORT": "5432",
     }
 }
@@ -116,7 +116,10 @@ STATIC_URL = "static/"
 # ]
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = "/app/media/"
+if DEBUG:
+    MEDIA_ROOT = os.path.join(BASE_DIR / "media")
+else:
+    MEDIA_ROOT = "/app/media/"
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -163,6 +166,7 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
 
 # Email backend configuration
 EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND")

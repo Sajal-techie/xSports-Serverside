@@ -1,5 +1,8 @@
 import os
-
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
+os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
+import django
+django.setup()
 from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.apps import apps
